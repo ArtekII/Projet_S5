@@ -1,0 +1,381 @@
+CREATE TABLE departement (
+    id   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nom  VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE role (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(20) NOT NULL UNIQUE,
+    libelle  VARCHAR(50) NOT NULL
+);
+
+-- Decision d'un valideur (demande de poste, offre, conditions de travail)
+CREATE TABLE decision (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(20) NOT NULL UNIQUE,
+    libelle  VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE statut_offre (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(30) NOT NULL UNIQUE,
+    libelle  VARCHAR(80) NOT NULL
+);
+
+CREATE TABLE etape_recrutement (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(20) NOT NULL UNIQUE,
+    libelle  VARCHAR(50) NOT NULL,
+    ordre    INT NOT NULL UNIQUE
+);
+
+CREATE TABLE statut_candidature (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(30) NOT NULL UNIQUE,
+    libelle  VARCHAR(80) NOT NULL
+);
+
+CREATE TABLE resultat (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(20) NOT NULL UNIQUE,
+    libelle  VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE type_question (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(20) NOT NULL UNIQUE,
+    libelle  VARCHAR(50) NOT NULL
+);
+
+-- Reponse du candidat a la proposition de conditions de travail
+CREATE TABLE reponse_condition (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(20) NOT NULL UNIQUE,
+    libelle  VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE type_contrat (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(20) NOT NULL UNIQUE,
+    libelle  VARCHAR(80) NOT NULL
+);
+
+CREATE TABLE type_notification (
+    id       INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code     VARCHAR(30) NOT NULL UNIQUE,
+    libelle  VARCHAR(80) NOT NULL
+);
+
+-- ---- Donnees de reference ----
+INSERT INTO role (code, libelle) VALUES
+    ('MANAGER',   'Manager'),
+    ('RH',        'Ressources humaines'),
+    ('FINANCE',   'Bureau de finances'),
+    ('DIRECTION', 'Direction'),
+    ('CANDIDAT',  'Candidat');
+
+INSERT INTO decision (code, libelle) VALUES
+    ('EN_ATTENTE', 'En attente'),
+    ('VALIDEE',    'Validee'),
+    ('REFUSEE',    'Refusee');
+
+INSERT INTO statut_offre (code, libelle) VALUES
+    ('EN_ATTENTE_RH',        'En attente de validation RH'),
+    ('REFUSEE_RH',           'Refusee par le RH'),
+    ('EN_ATTENTE_FINANCE',   'En attente de validation Finance'),
+    ('REFUSEE_FINANCE',      'Refusee par la Finance'),
+    ('EN_ATTENTE_DIRECTION', 'En attente de validation Direction'),
+    ('REFUSEE_DIRECTION',    'Refusee par la Direction'),
+    ('PUBLIEE',              'Publiee'),
+    ('CLOTUREE',             'Cloturee');
+
+INSERT INTO etape_recrutement (code, libelle, ordre) VALUES
+    ('CV',            'Selection des CV',  1),
+    ('QUESTIONNAIRE', 'Questionnaire',     2),
+    ('ENTRETIEN',     'Entretien',         3),
+    ('CONDITIONS',    'Conditions de travail', 4),
+    ('EMBAUCHE',      'Embauche',          5);
+
+INSERT INTO statut_candidature (code, libelle) VALUES
+    ('EN_COURS',            'En cours'),
+    ('ELIMINE',             'Elimine'),
+    ('REFUSE_PAR_CANDIDAT', 'Refuse par le candidat'),
+    ('EMBAUCHE',            'Embauche');
+
+INSERT INTO resultat (code, libelle) VALUES
+    ('REUSSI', 'Reussi'),
+    ('ECHOUE', 'Echoue');
+
+INSERT INTO type_question (code, libelle) VALUES
+    ('QCM',   'Choix multiple'),
+    ('TEXTE', 'Reponse libre');
+
+INSERT INTO reponse_condition (code, libelle) VALUES
+    ('OUI',   'Accepte'),
+    ('NON',   'Refuse'),
+    ('AUTRE', 'Autre remarque / modification');
+
+INSERT INTO type_contrat (code, libelle) VALUES
+    ('CE',  'Contrat d''essai'),
+    ('CDI', 'Contrat a duree indeterminee');
+
+INSERT INTO type_notification (code, libelle) VALUES
+    ('SELECTION_CV', 'Selection du CV'),
+    ('QUESTIONNAIRE', 'Questionnaire'),
+    ('ENTRETIEN',    'Entretien'),
+    ('CLASSEMENT',   'Classement'),
+    ('CONDITIONS',   'Conditions de travail'),
+    ('OFFRE',        'Offre d''emploi'),
+    ('INFO',         'Information');
+
+-- ---------------------------------------------------------------------
+-- UTILISATEURS
+-- ---------------------------------------------------------------------
+CREATE TABLE utilisateur (
+    id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    email           VARCHAR(255) NOT NULL UNIQUE,
+    mot_de_passe    VARCHAR(255) NOT NULL,              -- hash (bcrypt/argon2)
+    id_role         INT NOT NULL REFERENCES role(id),
+    id_departement  INT REFERENCES departement(id),
+    actif           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------
+-- POSTES ET DEMANDES DE NOUVEAUX POSTES
+-- ---------------------------------------------------------------------
+
+-- Catalogue des postes (contenu du dropdown du manager)
+CREATE TABLE poste (
+    id          INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    intitule    VARCHAR(150) NOT NULL UNIQUE,
+    description TEXT,
+    actif       BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE TABLE historique_poste (
+    id               INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_poste         INT NOT NULL REFERENCES poste(id),
+    id_utilisateur   INT NOT NULL REFERENCES utilisateur(id),
+    actif            BOOLEAN NOT NULL,
+    date_modification TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Demande du manager pour un poste pas présent encore
+CREATE TABLE demande_poste (
+    id               INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_manager       INT NOT NULL REFERENCES utilisateur(id),
+    id_departement   INT NOT NULL REFERENCES departement(id),
+    intitule_propose VARCHAR(150) NOT NULL,
+    justification    TEXT,
+    id_decision      INT NOT NULL DEFAULT 1 REFERENCES decision(id),   -- 1 = EN_ATTENTE
+    id_rh            INT REFERENCES utilisateur(id),
+    motif_refus      TEXT,
+    id_poste         INT REFERENCES poste(id),
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    decided_at       TIMESTAMP
+);
+
+-- ---------------------------------------------------------------------
+--  OFFRES D'EMPLOI ET CIRCUIT DE VALIDATION
+-- ---------------------------------------------------------------------
+
+CREATE TABLE offre_emploi (
+    id                  INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_poste            INT NOT NULL REFERENCES poste(id),
+    id_departement      INT NOT NULL REFERENCES departement(id),
+    id_manager          INT NOT NULL REFERENCES utilisateur(id),
+    annees_experience   INT NOT NULL DEFAULT 0 CHECK (annees_experience >= 0),
+    nb_places           INT NOT NULL CHECK (nb_places > 0),
+    salaire             NUMERIC(12,2) CHECK (salaire IS NULL OR salaire >= 0),  -- NULL tant que le RH ne l'a pas fixe
+    id_statut           INT NOT NULL DEFAULT 1 REFERENCES statut_offre(id),     -- 1 = EN_ATTENTE_RH
+    date_publication    TIMESTAMP,
+    created_at          TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Historique de chaque decision. id_role_valideur = RH, FINANCE ou DIRECTION.
+CREATE TABLE offre_validation (
+    id                 INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_offre           INT NOT NULL REFERENCES offre_emploi(id) ON DELETE CASCADE,
+    id_role_valideur   INT NOT NULL REFERENCES role(id),
+    id_valideur        INT NOT NULL REFERENCES utilisateur(id),
+    id_decision        INT NOT NULL REFERENCES decision(id),
+    salaire_avant      NUMERIC(12,2),
+    salaire_apres      NUMERIC(12,2),                   -- different si la Finance modifie le salaire
+    commentaire        TEXT,
+    decided_at         TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------
+-- CANDIDATURES
+-- ---------------------------------------------------------------------
+
+CREATE TABLE cv (
+    id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_candidat     INT NOT NULL REFERENCES utilisateur(id),
+    nom             VARCHAR(100) NOT NULL,
+    prenom          VARCHAR(100) NOT NULL,
+    date_naissance  DATE NOT NULL,
+    diplome         TEXT NOT NULL,
+    competences     TEXT NOT NULL,
+    hobby           TEXT,
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE candidature (
+    id                    INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_offre              INT NOT NULL REFERENCES offre_emploi(id),
+    id_candidat           INT NOT NULL REFERENCES utilisateur(id),
+    id_cv                 INT NOT NULL REFERENCES cv(id),
+    id_etape              INT NOT NULL DEFAULT 1 REFERENCES etape_recrutement(id),   -- 1 = CV
+    id_statut             INT NOT NULL DEFAULT 1 REFERENCES statut_candidature(id),  -- 1 = EN_COURS
+    score_questionnaire   NUMERIC(6,2),
+    cdi_autorise          BOOLEAN NOT NULL DEFAULT FALSE,   -- accreditation donnee par le RH
+    id_rh_cdi             INT REFERENCES utilisateur(id),
+    created_at            TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (id_offre, id_candidat)
+);
+
+-- Historique du passage de chaque etape
+CREATE TABLE candidature_etape (
+    id               INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_candidature   INT NOT NULL REFERENCES candidature(id) ON DELETE CASCADE,
+    id_etape         INT NOT NULL REFERENCES etape_recrutement(id),
+    id_resultat      INT NOT NULL REFERENCES resultat(id),
+    id_decideur      INT REFERENCES utilisateur(id),        -- NULL si automatique
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------
+-- QUESTIONNAIRES
+-- ---------------------------------------------------------------------
+
+CREATE TABLE questionnaire (
+    id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_offre        INT NOT NULL UNIQUE REFERENCES offre_emploi(id) ON DELETE CASCADE,
+    titre           VARCHAR(150) NOT NULL,
+    seuil_reussite  NUMERIC(6,2) NOT NULL,
+    id_createur     INT NOT NULL REFERENCES utilisateur(id)
+);
+
+CREATE TABLE question (
+    id                INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_questionnaire  INT NOT NULL REFERENCES questionnaire(id) ON DELETE CASCADE,
+    id_type           INT NOT NULL DEFAULT 1 REFERENCES type_question(id),   -- 1 = QCM
+    enonce            TEXT NOT NULL,
+    points            NUMERIC(5,2) NOT NULL DEFAULT 1,
+    ordre             INT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE choix_reponse (
+    id           INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_question  INT NOT NULL REFERENCES question(id) ON DELETE CASCADE,
+    libelle      TEXT NOT NULL,
+    est_correct  BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE reponse_candidat (
+    id               INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_candidature   INT NOT NULL REFERENCES candidature(id) ON DELETE CASCADE,
+    id_question      INT NOT NULL REFERENCES question(id),
+    id_choix         INT REFERENCES choix_reponse(id),
+    reponse_texte    TEXT,
+    points_obtenus   NUMERIC(5,2),
+    UNIQUE (id_candidature, id_question)
+);
+
+-- ---------------------------------------------------------------------
+-- ENTRETIEN ET CLASSEMENT
+-- ---------------------------------------------------------------------
+
+CREATE TABLE entretien (
+    id                  INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_candidature      INT NOT NULL UNIQUE REFERENCES candidature(id) ON DELETE CASCADE,
+    id_rh               INT NOT NULL REFERENCES utilisateur(id),
+    date_entretien      TIMESTAMP,
+    note_honnetete_cv   NUMERIC(4,2) NOT NULL CHECK (note_honnetete_cv BETWEEN 0 AND 20),
+    note_personnalite   NUMERIC(4,2) NOT NULL CHECK (note_personnalite BETWEEN 0 AND 20),
+    note_competences    NUMERIC(4,2) NOT NULL CHECK (note_competences BETWEEN 0 AND 20),
+    note_totale         NUMERIC(5,2) GENERATED ALWAYS AS
+                        (note_honnetete_cv + note_personnalite + note_competences) STORED
+);
+
+-- Rang durant anle entretien
+CREATE VIEW v_classement AS
+SELECT t.*,
+       (t.rang <= t.nb_places) AS retenu
+FROM (
+    SELECT c.id_offre,
+           c.id AS id_candidature,
+           e.note_totale,
+           o.nb_places,
+           RANK() OVER (PARTITION BY c.id_offre ORDER BY e.note_totale DESC) AS rang
+    FROM candidature c
+    JOIN statut_candidature s ON s.id = c.id_statut AND s.code = 'EN_COURS'
+    JOIN entretien e          ON e.id_candidature = c.id
+    JOIN offre_emploi o       ON o.id = c.id_offre
+) t;
+
+-- ---------------------------------------------------------------------
+-- CONDITIONS DE TRAVAIL ET CONTRAT
+-- ---------------------------------------------------------------------
+
+CREATE TABLE condition_travail (
+    id                   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_candidature       INT NOT NULL REFERENCES candidature(id) ON DELETE CASCADE,
+    version              INT NOT NULL DEFAULT 1,
+    id_role_proposant    INT NOT NULL REFERENCES role(id),          -- RH ou CANDIDAT
+    salaire              NUMERIC(12,2) NOT NULL CHECK (salaire >= 0),
+    heures_par_semaine   NUMERIC(4,1) NOT NULL CHECK (heures_par_semaine > 0),
+    horaires             VARCHAR(100),
+    lieu_travail         VARCHAR(255) NOT NULL,
+    id_reponse           INT REFERENCES reponse_condition(id),      -- NULL tant que le candidat n'a pas repondu
+    remarque             TEXT,
+    id_decision_rh       INT NOT NULL DEFAULT 1 REFERENCES decision(id),
+    created_at           TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (id_candidature, version)
+);
+
+CREATE TABLE contrat (
+    id                INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_candidature    INT NOT NULL UNIQUE REFERENCES candidature(id),
+    id_condition      INT NOT NULL REFERENCES condition_travail(id),
+    id_type_contrat   INT NOT NULL DEFAULT 1 REFERENCES type_contrat(id),   -- 1 = CE
+    date_debut        DATE,
+    date_fin          DATE,                              -- NULL pour un CDI
+    created_at        TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- ---------------------------------------------------------------------
+-- NOTIFICATIONS (boite de reception)
+-- ---------------------------------------------------------------------
+
+CREATE TABLE notification (
+    id                    INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_destinataire       INT NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+    id_type_notification  INT NOT NULL REFERENCES type_notification(id),
+    titre                 VARCHAR(150) NOT NULL,
+    message               TEXT NOT NULL,
+    id_candidature        INT REFERENCES candidature(id) ON DELETE SET NULL,
+    id_offre              INT REFERENCES offre_emploi(id) ON DELETE SET NULL,
+    lue                   BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at            TIMESTAMP NOT NULL DEFAULT NOW()
+);
+-- ===========================================
+-- Donnees ajoutees le 19/10/26 (run du projet)
+-- ===========================================
+INSERT INTO departement (nom) VALUES ('Informatique'), ('Ressources Humaines'), ('Finance'), ('Direction'), ('Marketing');
+INSERT INTO poste (intitule, description, actif) VALUES
+ ('Developpeur Junior', 'Developpeur debutant Java/Spring', true),
+ ('Developpeur Senior', 'Developpeur experimente Java/Spring', true),
+ ('Chef de projet', 'Gestion de projets IT', true),
+ ('Comptable', 'Gestion comptable et finance', true),
+ ('Designer UI/UX', 'Conception interfaces utilisateur', true);
+
+-- mot de passe = "password"  BCrypt $2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG
+INSERT INTO utilisateur (email, mot_de_passe, id_role, id_departement) VALUES
+ ('manager@demo.com',   '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='MANAGER'), (SELECT id FROM departement WHERE nom='Informatique')),
+ ('rh@demo.com',        '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='RH'), (SELECT id FROM departement WHERE nom='Ressources Humaines')),
+ ('finance@demo.com',   '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='FINANCE'), (SELECT id FROM departement WHERE nom='Finance')),
+ ('direction@demo.com', '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='DIRECTION'), (SELECT id FROM departement WHERE nom='Direction')),
+ ('candidat@demo.com',  '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='CANDIDAT'), NULL);

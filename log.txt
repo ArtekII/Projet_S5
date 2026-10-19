@@ -1,0 +1,1 @@
+Comptes (mdp = password) : manager@demo.com, rh@demo.com, finance@demo.com, direction@demo.com, candidat@demo.com
