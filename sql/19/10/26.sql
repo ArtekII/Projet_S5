@@ -332,7 +332,8 @@ FROM (
 
 CREATE TABLE condition_travail (
     id                   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_candidature       INT NOT NULL REFERENCES candidature(id) ON DELETE CASCADE,
+    id_candidature       INT REFERENCES candidature(id) ON DELETE CASCADE,
+    id_poste             INT REFERENCES poste(id),
     version              INT NOT NULL DEFAULT 1,
     id_role_proposant    INT NOT NULL REFERENCES role(id),          -- RH ou CANDIDAT
     salaire              NUMERIC(12,2) NOT NULL CHECK (salaire >= 0),
@@ -343,7 +344,13 @@ CREATE TABLE condition_travail (
     remarque             TEXT,
     id_decision_rh       INT NOT NULL DEFAULT 1 REFERENCES decision(id),
     created_at           TIMESTAMP NOT NULL DEFAULT NOW(),
-    UNIQUE (id_candidature, version)
+    UNIQUE (id_candidature, version),
+    CONSTRAINT chk_condition_cible CHECK (
+        (id_poste IS NOT NULL AND id_candidature IS NULL)
+        OR
+        (id_poste IS NULL AND id_candidature IS NOT NULL)
+    ),
+    CONSTRAINT uq_condition_poste_version UNIQUE (id_poste, version)
 );
 
 CREATE TABLE contrat (
