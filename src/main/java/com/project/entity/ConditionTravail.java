@@ -6,14 +6,21 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "condition_travail", uniqueConstraints = @UniqueConstraint(columnNames = { "id_candidature", "version" }))
+@Table(name = "condition_travail", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "id_candidature", "version" }),
+        @UniqueConstraint(columnNames = { "id_poste", "version" })
+})
 public class ConditionTravail {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "id_candidature", nullable = false)
+    @Column(name = "id_candidature")
     private Integer idCandidature;
+
+    @ManyToOne
+    @JoinColumn(name = "id_poste")
+    private Poste poste;
 
     @Column(nullable = false)
     private Integer version = 1;
@@ -82,6 +89,14 @@ public class ConditionTravail {
 
     public Integer getVersion() {
         return version;
+    }
+
+    public Poste getPoste() {
+        return poste;
+    }
+
+    public void setPoste(Poste poste) {
+        this.poste = poste;
     }
 
     public void setVersion(Integer version) {
