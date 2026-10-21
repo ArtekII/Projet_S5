@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import com.project.entity.*;
 import com.project.repository.*;
 import java.util.List;
-import java.time.LocalDate;
 import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,7 +72,9 @@ public class ContratService {
         contrat.setIdCandidature(candidatureId);
         contrat.setCondition(condition);
         contrat.setTypeContrat(type);
+        contrat.setStatut("FINALISE");
         contrat = contratRepo.save(contrat);
+        candidatureRepo.embaucher(candidatureId);
         return contrat;
     }
     @Transactional(readOnly = true)
@@ -95,63 +96,6 @@ public class ContratService {
         if (!"CONDITIONS".equals(candidature.get("etape")) || !"EN_COURS".equals(candidature.get("statut"))) {
             throw new IllegalStateException("La candidature n'est plus a l'etape Conditions en cours");
         }
-    }
-
-    // Toutes les mutations verrouillent la candidature avant le contrat.
-    private Contrat verrouillerContrat(Integer contratId, Integer candidatId) {
-        Integer candidatureId = contratRepo.findCandidatureId(contratId)
-                .orElseThrow(() -> new IllegalArgumentException("Contrat introuvable"));
-        Map<String, Object> candidature = candidatureRepo.verrouiller(candidatureId);
-        if (candidatId != null && !candidatId.equals(candidature.get("candidatid"))) {
-            throw new IllegalArgumentException("Contrat inaccessible");
-        }
-        return contratRepo.findByIdForUpdate(contratId).orElseThrow();
-    }
-
-    @Transactional
-    public void preparer(Integer contratId, LocalDate debut, LocalDate fin, Integer rhId) {
-        Contrat contrat = verrouillerContrat(contratId, null);
-        verifierEnCours(candidatureRepo.verrouiller(contrat.getIdCandidature()));
-        if ("SIGNE".equals(contrat.getStatut())) {
-            throw new IllegalStateException("Un contrat signe ne peut plus etre modifie");
-        }
-        if (debut == null || debut.isBefore(delai.maintenant().toLocalDate())) {
-            throw new IllegalArgumentException("La date de debut doit etre aujourd'hui ou ulterieure");
-        }
-        boolean cdi = "CDI".equals(contrat.getTypeContrat().getCode());
-        if (cdi && fin != null) throw new IllegalArgumentException("Un CDI ne doit pas avoir de date de fin");
-        if (!cdi && fin == null) throw new IllegalArgumentException("La date de fin est obligatoire pour un contrat d'essai");
-        if (fin != null && fin.isBefore(debut)) {
-            throw new IllegalArgumentException("La date de fin doit etre posterieure ou egale au debut");
-        }
-        contrat.setDateDebut(debut);
-        contrat.setDateFin(fin);
-        contrat.setIdRhPreparation(rhId);
-        contrat.setStatut("A_SIGNER");
-        contratRepo.save(contrat);
-    }
-
-    @Transactional
-    public Contrat signer(Integer contratId, Integer candidatId, boolean confirmation, long revision) {
-        Contrat contrat = verrouillerContrat(contratId, candidatId);
-        if (!confirmation) throw new IllegalArgumentException("Confirmez votre accord avant de signer");
-        if ("SIGNE".equals(contrat.getStatut())) return contrat;
-        if (contrat.getRevision() != revision) {
-            throw new IllegalStateException("Le contrat a change. Rechargez la page et relisez les dates avant de signer");
-        }
-        verifierEnCours(candidatureRepo.verrouiller(contrat.getIdCandidature()));
-        if (!"A_SIGNER".equals(contrat.getStatut()) || contrat.getDateDebut() == null) {
-            throw new IllegalStateException("Le RH doit preparer le contrat avant sa signature");
-        }
-        if (contrat.getDateDebut().isBefore(delai.maintenant().toLocalDate())) {
-            throw new IllegalStateException("La date de debut est depassee. Contactez le RH pour actualiser le contrat");
-        }
-        contrat.setStatut("SIGNE");
-        contrat.setSigneLe(delai.maintenant());
-        contrat.setIdSignataire(candidatId);
-        contratRepo.save(contrat);
-        candidatureRepo.embaucher(contrat.getIdCandidature());
-        return contrat;
     }
 
 }

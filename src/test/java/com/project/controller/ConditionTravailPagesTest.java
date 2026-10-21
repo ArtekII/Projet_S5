@@ -187,7 +187,7 @@ class ConditionTravailPagesTest {
         HttpResponse<String> response = get(client("CANDIDAT"), "/candidat/contrats");
         assertEquals(200, response.statusCode(), response.body());
         assertTrue(response.body().contains("CDI"));
-        assertTrue(response.body().contains("Conditions acceptées"));
+        assertTrue(response.body().contains("Vous avez maintenant un CDI"));
         assertFalse(response.body().contains("<script>alert(1)</script>"));
     }
     @Test
@@ -206,7 +206,7 @@ class ConditionTravailPagesTest {
     }
 
     @Test
-    void affichePreparationRhEtSignatureCandidat() throws Exception {
+    void afficheLeTypeAttribueSansEtapeSupplementaire() throws Exception {
         Utilisateur candidat = new Utilisateur(); candidat.setId(1);
         when(auth.currentUser(any())).thenReturn(Optional.of(candidat));
         Contrat contrat = new Contrat(); contrat.setId(1); contrat.setIdCandidature(3);
@@ -215,32 +215,30 @@ class ConditionTravailPagesTest {
         when(contrats.tousLesContrats()).thenReturn(List.of(contrat));
         HttpResponse<String> preparation = get(client("RH"), "/rh/contrats");
         assertEquals(200, preparation.statusCode(), preparation.body());
-        assertTrue(preparation.body().contains("name=\"dateDebut\""));
-        assertTrue(preparation.body().contains("name=\"dateFin\""));
+        assertFalse(preparation.body().contains("name=\"dateDebut\""));
+        assertFalse(preparation.body().contains("name=\"dateFin\""));
         contrat.setDateDebut(java.time.LocalDate.of(2026, 10, 22));
         contrat.setDateFin(java.time.LocalDate.of(2027, 1, 22));
-        contrat.setStatut("A_SIGNER");
+        contrat.setStatut("FINALISE");
         when(contrats.contratsDuCandidat(1)).thenReturn(List.of(contrat));
-        HttpResponse<String> signature = get(client("CANDIDAT"), "/candidat/contrats");
-        assertEquals(200, signature.statusCode(), signature.body());
-        assertTrue(signature.body().contains("/candidat/contrats/1/signer"));
-        assertTrue(signature.body().contains("name=\"confirmation\""));
-        assertTrue(signature.body().contains("name=\"revision\""));
+        HttpResponse<String> consultation = get(client("CANDIDAT"), "/candidat/contrats");
+        assertEquals(200, consultation.statusCode(), consultation.body());
+        assertTrue(consultation.body().contains("CE"));
+        assertFalse(consultation.body().contains("Le RH prépare"));
+        assertFalse(consultation.body().contains("<form"));
         assertEquals(302, get(client("CANDIDAT"), "/rh/contrats").statusCode());
     }
 
     @Test
     void routesRhInterditesAuCandidat() throws Exception {
         HttpClient client = client("CANDIDAT");
-        for (String path : List.of("/rh/candidatures/3/autoriser-cdi", "/rh/conditions/candidature/3/prolonger",
-                "/rh/contrats/1/preparer")) {
+        for (String path : List.of("/rh/candidatures/3/autoriser-cdi", "/rh/conditions/candidature/3/prolonger")) {
             HttpResponse<String> response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
                     .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
             assertEquals(302, response.statusCode());
         }
         org.mockito.Mockito.verify(contrats, org.mockito.Mockito.never()).autoriserCdi(any(), any());
         org.mockito.Mockito.verify(service, org.mockito.Mockito.never()).prolonger(any());
-        org.mockito.Mockito.verify(contrats, org.mockito.Mockito.never()).preparer(any(), any(), any(), any());
     }
 
 }

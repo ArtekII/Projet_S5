@@ -74,7 +74,6 @@ class ConditionTravailWorkflowTest {
         return c;
     }
 
-    private java.time.LocalDate debut() { return java.time.LocalDate.of(2026, 10, 22); }
 
     private ConditionTravail expirer() {
         service.dossiers(100);
@@ -103,61 +102,16 @@ class ConditionTravailWorkflowTest {
     }
 
     @Test
-    void preparationEtSignatureCloturentLaCandidatureUneSeuleFois() {
+    void acceptationAttribueLeContratEtConfirmeImmediatementLEmbauche() {
         Contrat contrat = contrats.accepterConditions(100, 100);
-        assertThrows(IllegalStateException.class, () -> contrats.signer(contrat.getId(), 100, true, contrat.getRevision()));
-        contrats.preparer(contrat.getId(), debut(), debut().plusMonths(3), 42);
-        contratRepository.flush();
-        assertEquals("A_SIGNER", contrat.getStatut());
-        assertEquals(42, contrat.getIdRhPreparation());
-        assertThrows(IllegalArgumentException.class, () -> contrats.signer(contrat.getId(), 100, false, contrat.getRevision()));
-        Contrat signe = contrats.signer(contrat.getId(), 100, true, contrat.getRevision());
-        assertEquals("SIGNE", signe.getStatut());
-        assertEquals(100, signe.getIdSignataire());
-        assertEquals(java.time.LocalDateTime.of(2026, 10, 21, 12, 0), signe.getSigneLe());
+        assertEquals("CE", contrat.getTypeContrat().getCode());
+        assertEquals("FINALISE", contrat.getStatut());
+        assertNull(contrat.getDateDebut());
+        assertNull(contrat.getDateFin());
         assertEquals(5, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
         assertEquals(4, jdbc.queryForObject("select id_statut from candidature where id = 100", Integer.class));
-        assertEquals(signe.getSigneLe(), contrats.signer(contrat.getId(), 100, true, contrat.getRevision()).getSigneLe());
-        assertThrows(IllegalStateException.class, () -> contrats.preparer(contrat.getId(), debut(), debut().plusMonths(1), 42));
-    }
-
-    @Test
-    void signatureInterditePourUnAutreCandidat() {
-        Contrat contrat = contrats.accepterConditions(100, 100);
-        contrats.preparer(contrat.getId(), debut(), debut().plusMonths(3), 42);
-        assertThrows(IllegalArgumentException.class, () -> contrats.signer(contrat.getId(), 200, true, contrat.getRevision()));
-        assertEquals("A_SIGNER", contrat.getStatut());
-    }
-
-    @Test
-    void signatureExigeDeRelireUnContratModifie() {
-        Contrat contrat = contrats.accepterConditions(100, 100);
-        contrats.preparer(contrat.getId(), debut(), debut().plusMonths(3), 42);
-        contratRepository.flush();
-        long ancienneRevision = contrat.getRevision();
-        contrats.preparer(contrat.getId(), debut().plusDays(1), debut().plusMonths(3), 42);
-        contratRepository.flush();
-        assertThrows(IllegalStateException.class, () -> contrats.signer(contrat.getId(), 100, true, ancienneRevision));
-        assertEquals("A_SIGNER", contrat.getStatut());
-    }
-
-    @Test
-    void valideLesDatesDuContratDessai() {
-        Contrat contrat = contrats.accepterConditions(100, 100);
-        assertThrows(IllegalArgumentException.class, () -> contrats.preparer(contrat.getId(), debut(), null, 42));
-        assertThrows(IllegalArgumentException.class, () -> contrats.preparer(contrat.getId(), debut(), debut().minusDays(1), 42));
-        assertThrows(IllegalArgumentException.class, () -> contrats.preparer(contrat.getId(), debut().minusDays(2), debut(), 42));
-        assertEquals("BROUILLON", contrat.getStatut());
-    }
-
-    @Test
-    void cdiSansDateDeFin() {
-        contrats.autoriserCdi(100, 42);
-        Contrat contrat = contrats.accepterConditions(100, 100);
-        assertThrows(IllegalArgumentException.class, () -> contrats.preparer(contrat.getId(), debut(), debut().plusMonths(1), 42));
-        contrats.preparer(contrat.getId(), debut(), null, 42);
-        assertNull(contrat.getDateFin());
-        assertEquals("A_SIGNER", contrat.getStatut());
+        assertEquals(contrat.getId(), contrats.accepterConditions(100, 100).getId());
+        assertEquals(1, contratRepository.count());
     }
 
     @Test
@@ -331,9 +285,9 @@ class ConditionTravailWorkflowTest {
         assertEquals("CE", contrat.getTypeContrat().getCode());
         assertEquals("OUI", contrat.getCondition().getReponse().getCode());
         assertEquals(100, contrat.getCondition().getIdCandidature());
-        assertEquals("BROUILLON", contrat.getStatut());
-        assertEquals(4, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
-        assertEquals(1, jdbc.queryForObject("select id_statut from candidature where id = 100", Integer.class));
+        assertEquals("FINALISE", contrat.getStatut());
+        assertEquals(5, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
+        assertEquals(4, jdbc.queryForObject("select id_statut from candidature where id = 100", Integer.class));
         assertEquals(contrat.getId(), contrats.accepterConditions(100, 100).getId());
         assertEquals(1, contratRepository.count());
         assertTrue(contrats.contratsDuCandidat(200).isEmpty());

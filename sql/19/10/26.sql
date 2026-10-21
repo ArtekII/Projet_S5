@@ -361,10 +361,7 @@ CREATE TABLE contrat (
     id_type_contrat   INT NOT NULL DEFAULT 1 REFERENCES type_contrat(id),   -- 1 = CE
     date_debut        DATE,
     date_fin          DATE,                              -- NULL pour un CDI
-    statut            VARCHAR(20) NOT NULL DEFAULT 'BROUILLON' CHECK (statut IN ('BROUILLON', 'A_SIGNER', 'SIGNE')),
-    revision          BIGINT NOT NULL DEFAULT 0,
-    signe_le          TIMESTAMP,
-    id_signataire     INT REFERENCES utilisateur(id),
+    statut            VARCHAR(20) NOT NULL DEFAULT 'FINALISE' CHECK (statut = 'FINALISE'),
     id_rh_preparation INT REFERENCES utilisateur(id),
     created_at        TIMESTAMP NOT NULL DEFAULT NOW()
 );

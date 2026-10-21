@@ -4,8 +4,6 @@ import com.project.entity.ConditionTravail;
 import com.project.entity.Poste;
 import com.project.service.ConditionTravailService;
 import com.project.service.ContratService;
-import java.time.LocalDate;
-import org.springframework.format.annotation.DateTimeFormat;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -165,20 +163,6 @@ public class RhController {
     public String contrats(Model model) {
         model.addAttribute("contrats", contratService.tousLesContrats());
         return "rh/contrats";
-    }
-
-    @PostMapping("/contrats/{id}/preparer")
-    public String preparerContrat(@PathVariable Integer id,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
-            HttpSession session, RedirectAttributes flash) {
-        try {
-            contratService.preparer(id, dateDebut, dateFin, authService.currentUser(session).orElseThrow().getId());
-            flash.addFlashAttribute("success", "Contrat prepare et disponible pour signature.");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            flash.addFlashAttribute("error", e.getMessage());
-        }
-        return "redirect:/rh/contrats";
     }
 
 }

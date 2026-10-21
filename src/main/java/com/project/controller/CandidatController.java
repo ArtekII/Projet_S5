@@ -143,17 +143,4 @@ public class CandidatController {
         }
     }
 
-    @PostMapping("/contrats/{id}/signer")
-    public String signerContrat(@PathVariable Integer id,
-            @RequestParam(defaultValue = "false") boolean confirmation, @RequestParam long revision,
-            HttpSession session, RedirectAttributes flash) {
-        try {
-            contratService.signer(id, authService.currentUser(session).orElseThrow().getId(), confirmation, revision);
-            flash.addFlashAttribute("success", "Votre accord est enregistre. Votre candidature passe a l'embauche.");
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            flash.addFlashAttribute("error", e.getMessage());
-        }
-        return "redirect:/candidat/contrats";
-    }
-
 }

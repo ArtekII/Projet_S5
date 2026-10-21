@@ -31,30 +31,14 @@ public class Contrat {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false, columnDefinition = "varchar(20) default 'BROUILLON'")
-    private String statut = "BROUILLON";
-
-    @Version
-    @Column(nullable = false, columnDefinition = "bigint default 0")
-    private long revision;
-
-    public long getRevision() { return revision; }
-
-    @Column(name = "signe_le")
-    private LocalDateTime signeLe;
-
-    @Column(name = "id_signataire")
-    private Integer idSignataire;
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'FINALISE'")
+    private String statut = "FINALISE";
 
     @Column(name = "id_rh_preparation")
     private Integer idRhPreparation;
 
     public String getStatut() { return statut; }
     public void setStatut(String valeur) { statut = valeur; }
-    public LocalDateTime getSigneLe() { return signeLe; }
-    public void setSigneLe(LocalDateTime valeur) { signeLe = valeur; }
-    public Integer getIdSignataire() { return idSignataire; }
-    public void setIdSignataire(Integer valeur) { idSignataire = valeur; }
     public Integer getIdRhPreparation() { return idRhPreparation; }
     public void setIdRhPreparation(Integer valeur) { idRhPreparation = valeur; }
 
