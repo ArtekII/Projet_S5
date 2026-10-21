@@ -56,14 +56,12 @@ CREATE TABLE IF NOT EXISTS candidats_selec3 (
     rang INTEGER
 );
 
-
-
-
 CREATE TABLE Candidats_selec (
-    id
-    id_etape
-    id_candidature
-    note
-    rang
-    id_poste
-)
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,, 
+    id_etape INT NOT NULL REFERENCES etape(id),
+    id_candidature INT NOT NULL REFERENCES candidature(id),
+    note INT DEFAULT 0,
+    rang INT DEFAULT 0,
+    date TIMESTAMP NOT NULL DEFAULT NOW(),
+    id_poste INT NOT NULL REFERENCES poste(id)
+);
