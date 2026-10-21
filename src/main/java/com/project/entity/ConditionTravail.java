@@ -57,6 +57,12 @@ public class ConditionTravail {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "repondre_avant")
+    private LocalDateTime repondreAvant;
+
+    public LocalDateTime getRepondreAvant() { return repondreAvant; }
+    public void setRepondreAvant(LocalDateTime valeur) { repondreAvant = valeur; }
+
     public ConditionTravail() {
     }
 

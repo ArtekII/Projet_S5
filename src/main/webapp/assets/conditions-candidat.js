@@ -22,7 +22,9 @@ document.querySelectorAll('.conditions-page article').forEach((carte) => {
                 ? 'Simulation : les conditions seraient acceptées et un contrat CE serait créé (CDI avec accréditation RH). Aucune donnée enregistrée.'
                 : 'Acceptation des conditions et création de votre contrat en cours…';
         } else {
-            message.textContent = 'Vous avez choisi « Non ». La suite de cette action sera disponible plus tard. Aucune réponse enregistrée.';
+            message.textContent = formulaire.dataset.apercu === 'true'
+                ? 'Simulation : les conditions seraient refusées et la candidature clôturée. Aucune donnée enregistrée.'
+                : 'Refus des conditions et clôture de votre candidature en cours…';
         }
     }
 

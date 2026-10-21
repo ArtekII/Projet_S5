@@ -16,6 +16,9 @@ public interface ConditionTravailRepository extends JpaRepository<ConditionTrava
 
     Optional<ConditionTravail> findFirstByIdCandidatureOrderByVersionDesc(Integer candidatureId);
 
+    @Query("select c.idCandidature from ConditionTravail c where c.id = :id")
+    Optional<Integer> findCandidatureId(@Param("id") Integer id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from ConditionTravail c where c.id = :id")
     Optional<ConditionTravail> findByIdForUpdate(@Param("id") Integer id);

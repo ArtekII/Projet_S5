@@ -16,7 +16,7 @@ public class AuthInterceptor implements HandlerInterceptor {
       return false;
     }
     String role = (String) session.getAttribute("userRole");
-    String path = req.getRequestURI();
+    String path = req.getRequestURI().substring(req.getContextPath().length());
     // controle role par prefixe
     if (path.startsWith("/manager") && !"MANAGER".equals(role)) {
       res.sendRedirect("/login?error=role");

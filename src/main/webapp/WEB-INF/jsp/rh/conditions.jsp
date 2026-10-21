@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="f" uri="/WEB-INF/tld/functions.tld" %>
 <!DOCTYPE html>
 <html lang="fr"><head>
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -44,6 +45,18 @@
    <article class="card shadow-sm mb-3">
     <div class="card-header"><h3 class="h6 mb-1"><c:out value="${d.intitule}"/></h3><span class="small text-muted"><c:out value="${d.email}"/> · Candidature n° ${d.id}</span></div>
     <div class="card-body">
+     <p><strong>Type prévu :</strong> ${d.cdi_autorise ? 'CDI autorisé' : "Contrat d’essai"}</p>
+     <c:if test="${not d.cdi_autorise}">
+      <form method="post" action="${pageContext.request.contextPath}/rh/candidatures/${d.id}/autoriser-cdi" class="mb-3">
+       <button class="btn btn-outline-primary">Autoriser le CDI</button>
+      </form>
+     </c:if>
+     <c:if test="${not empty d.actuelle.repondreAvant}">
+      <p class="${d.expire ? 'text-danger' : 'text-muted'}">Réponse attendue avant le ${f:dateTime(d.actuelle.repondreAvant)} (heure de Madagascar). ${d.expire ? 'Délai expiré.' : ''}</p>
+      <form method="post" action="${pageContext.request.contextPath}/rh/conditions/candidature/${d.id}/prolonger" class="mb-3">
+       <button class="btn btn-outline-secondary">Prolonger le délai de réponse</button>
+      </form>
+     </c:if>
      <c:choose>
       <c:when test="${empty d.actuelle}"><p class="text-muted mb-0">Définissez les conditions du poste pour permettre au candidat de les consulter.</p></c:when>
       <c:when test="${d.actuelle.roleProposant.code == 'RH'}"><span class="badge bg-secondary mb-3">En attente du candidat</span><c:set var="affichee" value="${d.actuelle}"/><%@ include file="../fragments/condition-summary.jsp" %></c:when>

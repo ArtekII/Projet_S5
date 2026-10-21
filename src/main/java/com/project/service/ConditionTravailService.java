@@ -19,6 +19,7 @@ public class ConditionTravailService {
                 .toList();
     }
 
+    private final DelaiConditionsService delai;
     private final ConditionTravailRepository conditionTravailRepository;
     private final PosteRepository posteRepository;
     private final RoleRepository roleRepository;
@@ -29,7 +30,8 @@ public class ConditionTravailService {
     public ConditionTravailService(ConditionTravailRepository conditionTravailRepository,
             PosteRepository posteRepository, RoleRepository roleRepository,
             DecisionRepository decisionRepository, ReponseConditionRepository reponseRepository,
-            CandidatureRepository candidatureRepository) {
+            CandidatureRepository candidatureRepository, DelaiConditionsService delai) {
+        this.delai = delai;
         this.conditionTravailRepository = conditionTravailRepository;
         this.posteRepository = posteRepository;
         this.roleRepository = roleRepository;
@@ -71,15 +73,18 @@ public class ConditionTravailService {
         if (!derniere.getId().equals(precedente.getId())) {
             throw new IllegalStateException("Cette proposition a deja ete remplacee par une nouvelle version");
         }
-        if (!"RH".equals(precedente.getRoleProposant().getCode()) || precedente.getReponse() != null) {
-            throw new IllegalStateException("La proposition doit provenir du RH et etre sans reponse");
+        if ((!"RH".equals(precedente.getRoleProposant().getCode()) && !contrePropositionRefusee(precedente)) || precedente.getReponse() != null) {
+            throw new IllegalStateException("La proposition doit provenir du RH ou suivre une contre-proposition refusee");
         }
+        delai.verifier(precedente);
         ConditionTravail proposition = nouvelleProposition(donnees, "CANDIDAT",
                 Math.addExact(precedente.getVersion(), 1));
         proposition.setIdCandidature(precedente.getIdCandidature());
-        precedente.setReponse(reponseRepository.findByCode("AUTRE")
-                .orElseThrow(() -> new IllegalStateException("Reponse AUTRE introuvable")));
-        conditionTravailRepository.save(precedente);
+        if ("RH".equals(precedente.getRoleProposant().getCode())) {
+            precedente.setReponse(reponseRepository.findByCode("AUTRE")
+                    .orElseThrow(() -> new IllegalStateException("Reponse AUTRE introuvable")));
+            conditionTravailRepository.save(precedente);
+        }
         return conditionTravailRepository.save(proposition);
     }
 
@@ -96,12 +101,20 @@ public class ConditionTravailService {
         return postes;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<Map<String, Object>> dossiers(Integer candidatId) {
         List<Map<String, Object>> dossiers = candidatureRepository.findDossiersConditions(candidatId);
         for (Map<String, Object> dossier : dossiers) {
-            List<ConditionTravail> historique = conditionTravailRepository.findByIdCandidatureOrderByVersionDesc((Integer) dossier.get("id"));
+            Integer candidatureId = (Integer) dossier.get("id");
+            Map<String, Object> verrouillee = candidatureRepository.verrouiller(candidatureId);
+            if (!"CONDITIONS".equals(verrouillee.get("etape")) || !"EN_COURS".equals(verrouillee.get("statut"))) continue;
+            Integer posteId = (Integer) dossier.get("posteid");
+            if (conditionTravailRepository.findFirstByPoste_IdOrderByVersionDesc(posteId).isPresent()) {
+                conditionsPourCandidature(candidatureId, posteId);
+            }
+            List<ConditionTravail> historique = conditionTravailRepository.findByIdCandidatureOrderByVersionDesc(candidatureId);
             ConditionTravail modele = conditionTravailRepository.findFirstByPoste_IdOrderByVersionDesc((Integer) dossier.get("posteid")).orElse(null);
+            dossier.put("expire", !historique.isEmpty() && delai.expire(historique.get(0)));
             dossier.put("historique", historique);
             dossier.put("modele", modele);
             dossier.put("actuelle", historique.isEmpty() ? modele : historique.get(0));
@@ -127,15 +140,55 @@ public class ConditionTravailService {
                     .orElseThrow(() -> new IllegalStateException("Le RH doit d'abord definir les conditions du poste"));
             actuelle = nouvelleProposition(modele, "RH", 1);
             actuelle.setIdCandidature(candidatureId);
+            actuelle.setRepondreAvant(delai.nouvelleEcheance());
             actuelle = conditionTravailRepository.saveAndFlush(actuelle);
+        }
+        // Les propositions historiques recoivent un delai lors du deploiement.
+        if (actuelle.getRepondreAvant() == null
+                && !("CANDIDAT".equals(actuelle.getRoleProposant().getCode())
+                     && "EN_ATTENTE".equals(actuelle.getDecisionRh().getCode()))) {
+            actuelle.setRepondreAvant(delai.nouvelleEcheance());
         }
         return actuelle;
     }
 
     @Transactional
+    public void publierConditionsDisponibles() {
+        dossiers(null);
+    }
+
+    @Transactional
+    public void prolonger(Integer candidatureId) {
+        Map<String, Object> candidature = candidatureRepository.verrouiller(candidatureId);
+        if (!"CONDITIONS".equals(candidature.get("etape")) || !"EN_COURS".equals(candidature.get("statut"))) {
+            throw new IllegalStateException("La candidature n'est plus en negociation");
+        }
+        ConditionTravail actuelle = conditionTravailRepository
+                .findFirstByIdCandidatureOrderByVersionDesc(candidatureId).orElseThrow(
+                        () -> new IllegalStateException("Aucune condition individuelle disponible"));
+        boolean enAttenteRh = "CANDIDAT".equals(actuelle.getRoleProposant().getCode())
+                && "EN_ATTENTE".equals(actuelle.getDecisionRh().getCode());
+        if (actuelle.getReponse() != null || enAttenteRh) {
+            throw new IllegalStateException("Aucune reponse du candidat attendue");
+        }
+        java.time.LocalDateTime base = delai.maintenant();
+        if (actuelle.getRepondreAvant() != null && actuelle.getRepondreAvant().isAfter(base)) {
+            base = actuelle.getRepondreAvant();
+        }
+        // Ajouter un delai complet sans raccourcir une echeance existante.
+        actuelle.setRepondreAvant(delai.prolonger(base));
+        conditionTravailRepository.save(actuelle);
+    }
+
+    @Transactional
     public void decider(Integer conditionId, boolean valider) {
-        ConditionTravail condition = conditionTravailRepository.findByIdForUpdate(conditionId)
-                .orElseThrow(() -> new IllegalArgumentException("Proposition introuvable"));
+        Integer candidatureId = conditionTravailRepository.findCandidatureId(conditionId)
+                .orElseThrow(() -> new IllegalArgumentException("Proposition individuelle introuvable"));
+        Map<String, Object> candidature = candidatureRepository.verrouiller(candidatureId);
+        if (!"CONDITIONS".equals(candidature.get("etape")) || !"EN_COURS".equals(candidature.get("statut"))) {
+            throw new IllegalStateException("La candidature n'est plus en negociation");
+        }
+        ConditionTravail condition = conditionTravailRepository.findByIdForUpdate(conditionId).orElseThrow();
         if (condition.getIdCandidature() == null || !"CANDIDAT".equals(condition.getRoleProposant().getCode())
                 || !"EN_ATTENTE".equals(condition.getDecisionRh().getCode())) {
             throw new IllegalStateException("Cette proposition n'est pas en attente de validation RH");
@@ -145,7 +198,34 @@ public class ConditionTravailService {
             throw new IllegalStateException("Cette proposition a ete remplacee");
         }
         condition.setDecisionRh(decisionRepository.findByCode(valider ? "VALIDEE" : "REFUSEE").orElseThrow());
+        condition.setRepondreAvant(delai.nouvelleEcheance());
         conditionTravailRepository.save(condition);
+    }
+
+    private boolean contrePropositionRefusee(ConditionTravail condition) {
+        return "CANDIDAT".equals(condition.getRoleProposant().getCode())
+                && "REFUSEE".equals(condition.getDecisionRh().getCode());
+    }
+
+    // La candidature est verrouillee par ContratService.
+    ConditionTravail reprendreConditionsInitiales(Integer candidatureId) {
+        ConditionTravail derniere = conditionTravailRepository
+                .findFirstByIdCandidatureOrderByVersionDesc(candidatureId)
+                .orElseThrow(() -> new IllegalStateException("Aucune proposition individuelle"));
+        if (!contrePropositionRefusee(derniere) || derniere.getReponse() != null) {
+            throw new IllegalStateException("La derniere contre-proposition doit avoir ete refusee par le RH");
+        }
+        delai.verifier(derniere);
+        List<ConditionTravail> historique = conditionTravailRepository
+                .findByIdCandidatureOrderByVersionDesc(candidatureId);
+        ConditionTravail initiale = historique.get(historique.size() - 1);
+        if (!"RH".equals(initiale.getRoleProposant().getCode())) {
+            throw new IllegalStateException("Proposition RH initiale introuvable");
+        }
+        ConditionTravail reprise = nouvelleProposition(initiale, "RH", Math.addExact(derniere.getVersion(), 1));
+        reprise.setIdCandidature(candidatureId);
+        reprise.setRepondreAvant(derniere.getRepondreAvant());
+        return conditionTravailRepository.save(reprise);
     }
 
     private ConditionTravail nouvelleProposition(ConditionTravail donnees, String role, int version) {
@@ -185,5 +265,23 @@ public class ConditionTravailService {
                 || valeur.stripTrailingZeros().scale() > decimales) {
             throw new IllegalArgumentException(champ + " invalide pour le schema SQL");
         }
+    }
+
+    @Transactional
+    public void refuser(Integer candidatureId, Integer candidatId) {
+        Integer posteId = candidatureRepository.findPostePourNegociationForUpdate(candidatureId, candidatId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidature inaccessible ou hors de l'etape Conditions"));
+        ConditionTravail condition = conditionsPourCandidature(candidatureId, posteId);
+        boolean propositionRh = "RH".equals(condition.getRoleProposant().getCode());
+        boolean changementsValides = "CANDIDAT".equals(condition.getRoleProposant().getCode())
+                && "VALIDEE".equals(condition.getDecisionRh().getCode());
+        if (condition.getReponse() != null || (!propositionRh && !changementsValides && !contrePropositionRefusee(condition))) {
+            throw new IllegalStateException("Seule une proposition RH ou des changements valides peuvent etre refuses");
+        }
+        delai.verifier(condition);
+        condition.setReponse(reponseRepository.findByCode("NON")
+                .orElseThrow(() -> new IllegalStateException("Reponse NON introuvable")));
+        conditionTravailRepository.save(condition);
+        candidatureRepository.refuserParCandidat(candidatureId);
     }
 }

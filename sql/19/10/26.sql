@@ -343,6 +343,7 @@ CREATE TABLE condition_travail (
     id_reponse           INT REFERENCES reponse_condition(id),      -- NULL tant que le candidat n'a pas repondu
     remarque             TEXT,
     id_decision_rh       INT NOT NULL DEFAULT 1 REFERENCES decision(id),
+    repondre_avant       TIMESTAMP,
     created_at           TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE (id_candidature, version),
     CONSTRAINT chk_condition_cible CHECK (
@@ -360,6 +361,11 @@ CREATE TABLE contrat (
     id_type_contrat   INT NOT NULL DEFAULT 1 REFERENCES type_contrat(id),   -- 1 = CE
     date_debut        DATE,
     date_fin          DATE,                              -- NULL pour un CDI
+    statut            VARCHAR(20) NOT NULL DEFAULT 'BROUILLON' CHECK (statut IN ('BROUILLON', 'A_SIGNER', 'SIGNE')),
+    revision          BIGINT NOT NULL DEFAULT 0,
+    signe_le          TIMESTAMP,
+    id_signataire     INT REFERENCES utilisateur(id),
+    id_rh_preparation INT REFERENCES utilisateur(id),
     created_at        TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

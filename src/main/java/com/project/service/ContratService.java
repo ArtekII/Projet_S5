@@ -4,11 +4,13 @@ import org.springframework.stereotype.Service;
 import com.project.entity.*;
 import com.project.repository.*;
 import java.util.List;
+import java.time.LocalDate;
 import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service 
 public class ContratService {
+    private final DelaiConditionsService delai;
     private final ContratRepository contratRepo;
     private final TypeContratRepository typeContratRepo;
     private final ConditionTravailRepository conditionRepo;
@@ -17,7 +19,8 @@ public class ContratService {
     private final ConditionTravailService conditionService;
 
     public ContratService(ContratRepository c, TypeContratRepository t, ConditionTravailRepository cond,
-            ReponseConditionRepository r, CandidatureRepository candidatureRepo, ConditionTravailService conditionService) {
+            ReponseConditionRepository r, CandidatureRepository candidatureRepo, ConditionTravailService conditionService, DelaiConditionsService delai) {
+        this.delai = delai;
         this.contratRepo = c;
         this.typeContratRepo = t;
         this.conditionRepo = cond;
@@ -33,6 +36,15 @@ public class ContratService {
 
     @Transactional
     public Contrat accepterConditions(Integer candidatureId, Integer candidatId) {
+        return accepter(candidatureId, candidatId, false);
+    }
+
+    @Transactional
+    public Contrat accepterConditionsInitiales(Integer candidatureId, Integer candidatId) {
+        return accepter(candidatureId, candidatId, true);
+    }
+
+    private Contrat accepter(Integer candidatureId, Integer candidatId, boolean initiales) {
         Map<String, Object> candidature = candidatureRepo.findPourContratForUpdate(candidatureId, candidatId)
                 .orElseThrow(() -> new IllegalArgumentException("Candidature inaccessible"));
         // Une seconde soumission renvoie le contrat deja cree.
@@ -41,13 +53,16 @@ public class ContratService {
         if (!"CONDITIONS".equals(candidature.get("etape")) || !"EN_COURS".equals(candidature.get("statut"))) {
             throw new IllegalStateException("La candidature doit etre a l'etape Conditions et en cours");
         }
-        ConditionTravail condition = conditionService.conditionsPourCandidature(candidatureId, (Integer) candidature.get("posteid"));
+        ConditionTravail condition = initiales
+                ? conditionService.reprendreConditionsInitiales(candidatureId)
+                : conditionService.conditionsPourCandidature(candidatureId, (Integer) candidature.get("posteid"));
         boolean propositionRh = "RH".equals(condition.getRoleProposant().getCode()) && condition.getReponse() == null;
         boolean changementsValides = "CANDIDAT".equals(condition.getRoleProposant().getCode())
                 && "VALIDEE".equals(condition.getDecisionRh().getCode()) && condition.getReponse() == null;
         if (!propositionRh && !changementsValides) {
             throw new IllegalStateException("Seules la proposition RH ou des modifications validees peuvent etre acceptees");
         }
+        delai.verifier(condition);
         String code = Boolean.TRUE.equals(candidature.get("cdi_autorise")) ? "CDI" : "CE";
         TypeContrat type = typeContratRepo.findByCode(code)
                 .orElseThrow(() -> new IllegalStateException("Type de contrat " + code + " introuvable"));
@@ -59,7 +74,84 @@ public class ContratService {
         contrat.setCondition(condition);
         contrat.setTypeContrat(type);
         contrat = contratRepo.save(contrat);
-        candidatureRepo.passerAuContrat(candidatureId);
         return contrat;
     }
+    @Transactional(readOnly = true)
+    public List<Contrat> tousLesContrats() {
+        return contratRepo.findAllByOrderByIdDesc();
+    }
+
+    @Transactional
+    public void autoriserCdi(Integer candidatureId, Integer rhId) {
+        Map<String, Object> candidature = candidatureRepo.verrouiller(candidatureId);
+        verifierEnCours(candidature);
+        if (contratRepo.findByIdCandidature(candidatureId).isPresent()) {
+            throw new IllegalStateException("Le type ne peut plus changer apres creation du contrat");
+        }
+        candidatureRepo.autoriserCdi(candidatureId, rhId);
+    }
+
+    private void verifierEnCours(Map<String, Object> candidature) {
+        if (!"CONDITIONS".equals(candidature.get("etape")) || !"EN_COURS".equals(candidature.get("statut"))) {
+            throw new IllegalStateException("La candidature n'est plus a l'etape Conditions en cours");
+        }
+    }
+
+    // Toutes les mutations verrouillent la candidature avant le contrat.
+    private Contrat verrouillerContrat(Integer contratId, Integer candidatId) {
+        Integer candidatureId = contratRepo.findCandidatureId(contratId)
+                .orElseThrow(() -> new IllegalArgumentException("Contrat introuvable"));
+        Map<String, Object> candidature = candidatureRepo.verrouiller(candidatureId);
+        if (candidatId != null && !candidatId.equals(candidature.get("candidatid"))) {
+            throw new IllegalArgumentException("Contrat inaccessible");
+        }
+        return contratRepo.findByIdForUpdate(contratId).orElseThrow();
+    }
+
+    @Transactional
+    public void preparer(Integer contratId, LocalDate debut, LocalDate fin, Integer rhId) {
+        Contrat contrat = verrouillerContrat(contratId, null);
+        verifierEnCours(candidatureRepo.verrouiller(contrat.getIdCandidature()));
+        if ("SIGNE".equals(contrat.getStatut())) {
+            throw new IllegalStateException("Un contrat signe ne peut plus etre modifie");
+        }
+        if (debut == null || debut.isBefore(delai.maintenant().toLocalDate())) {
+            throw new IllegalArgumentException("La date de debut doit etre aujourd'hui ou ulterieure");
+        }
+        boolean cdi = "CDI".equals(contrat.getTypeContrat().getCode());
+        if (cdi && fin != null) throw new IllegalArgumentException("Un CDI ne doit pas avoir de date de fin");
+        if (!cdi && fin == null) throw new IllegalArgumentException("La date de fin est obligatoire pour un contrat d'essai");
+        if (fin != null && fin.isBefore(debut)) {
+            throw new IllegalArgumentException("La date de fin doit etre posterieure ou egale au debut");
+        }
+        contrat.setDateDebut(debut);
+        contrat.setDateFin(fin);
+        contrat.setIdRhPreparation(rhId);
+        contrat.setStatut("A_SIGNER");
+        contratRepo.save(contrat);
+    }
+
+    @Transactional
+    public Contrat signer(Integer contratId, Integer candidatId, boolean confirmation, long revision) {
+        Contrat contrat = verrouillerContrat(contratId, candidatId);
+        if (!confirmation) throw new IllegalArgumentException("Confirmez votre accord avant de signer");
+        if ("SIGNE".equals(contrat.getStatut())) return contrat;
+        if (contrat.getRevision() != revision) {
+            throw new IllegalStateException("Le contrat a change. Rechargez la page et relisez les dates avant de signer");
+        }
+        verifierEnCours(candidatureRepo.verrouiller(contrat.getIdCandidature()));
+        if (!"A_SIGNER".equals(contrat.getStatut()) || contrat.getDateDebut() == null) {
+            throw new IllegalStateException("Le RH doit preparer le contrat avant sa signature");
+        }
+        if (contrat.getDateDebut().isBefore(delai.maintenant().toLocalDate())) {
+            throw new IllegalStateException("La date de debut est depassee. Contactez le RH pour actualiser le contrat");
+        }
+        contrat.setStatut("SIGNE");
+        contrat.setSigneLe(delai.maintenant());
+        contrat.setIdSignataire(candidatId);
+        contratRepo.save(contrat);
+        candidatureRepo.embaucher(contrat.getIdCandidature());
+        return contrat;
+    }
+
 }

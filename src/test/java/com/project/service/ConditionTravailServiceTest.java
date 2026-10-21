@@ -15,6 +15,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ConditionTravailServiceTest {
+    @Mock DelaiConditionsService delai;
     @Mock ConditionTravailRepository conditions;
     @Mock PosteRepository postes;
     @Mock CandidatureRepository candidatures;

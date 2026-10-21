@@ -322,7 +322,8 @@ FROM (
 
 CREATE TABLE condition_travail (
     id                   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_candidature       INT NOT NULL REFERENCES candidature(id) ON DELETE CASCADE,
+    id_candidature       INT REFERENCES candidature(id) ON DELETE CASCADE,
+    id_poste             INT REFERENCES poste(id),
     version              INT NOT NULL DEFAULT 1,
     id_role_proposant    INT NOT NULL REFERENCES role(id),          -- RH ou CANDIDAT
     salaire              NUMERIC(12,2) NOT NULL CHECK (salaire >= 0),
@@ -332,8 +333,11 @@ CREATE TABLE condition_travail (
     id_reponse           INT REFERENCES reponse_condition(id),      -- NULL tant que le candidat n'a pas repondu
     remarque             TEXT,
     id_decision_rh       INT NOT NULL DEFAULT 1 REFERENCES decision(id),
+    repondre_avant       TIMESTAMP,
     created_at           TIMESTAMP NOT NULL DEFAULT NOW(),
-    UNIQUE (id_candidature, version)
+    UNIQUE (id_candidature, version),
+    UNIQUE (id_poste, version),
+    CHECK ((id_poste IS NULL) <> (id_candidature IS NULL))
 );
 
 CREATE TABLE contrat (
@@ -343,6 +347,11 @@ CREATE TABLE contrat (
     id_type_contrat   INT NOT NULL DEFAULT 1 REFERENCES type_contrat(id),   -- 1 = CE
     date_debut        DATE,
     date_fin          DATE,                              -- NULL pour un CDI
+    statut            VARCHAR(20) NOT NULL DEFAULT 'BROUILLON' CHECK (statut IN ('BROUILLON', 'A_SIGNER', 'SIGNE')),
+    revision          BIGINT NOT NULL DEFAULT 0,
+    signe_le          TIMESTAMP,
+    id_signataire     INT REFERENCES utilisateur(id),
+    id_rh_preparation INT REFERENCES utilisateur(id),
     created_at        TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
