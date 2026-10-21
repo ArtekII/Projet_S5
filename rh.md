@@ -23,16 +23,12 @@ cv_candidat (
     annee_experience, email
 )
 
-candidats_selec1 (
-    id, id_offre, id_cv_candidat, date_selection
+candidats_selec (
+    id, id_offre, id_cv_candidat, id_etape, note, rang, date_selection
 )
 
 questions_teste (
     id, id_offre, question, points_max
-)
-
-candidats_selec2 (
-    id, id_candidat_selec1, points, date_selection
 )
 
 entretien_qualification (
@@ -40,11 +36,7 @@ entretien_qualification (
 )
 
 entretien_candidat (
-    id, id_eq, id_candidat_selec2, points, commentaire
-)
-
-candidats_selec3 (
-    id, id_candidat_selec2, note_finale, rang
+    id, id_eq, id_candidat_selec, points, commentaire
 )
 ```
 
@@ -53,8 +45,7 @@ double sélection :
 
 ```sql
 UNIQUE (id_candidat, id_offre)
-UNIQUE (id_offre, id_cv_candidat)
-UNIQUE (id_offre, id_candidat_selec1)
+UNIQUE (id_offre, id_cv_candidat, id_etape)
 ```
 
 Les clés étrangères doivent utiliser `ON DELETE CASCADE` lorsque la ligne
@@ -123,8 +114,8 @@ clique sur **Valider la première sélection**.
 
 ### Enregistrement
 
-Pour chaque CV coché, insérer une ligne dans `candidats_selec1` avec
-`id_offre` et `id_cv_candidat`.
+Pour chaque CV coché, insérer une ligne dans `candidats_selec` avec
+`id_offre`, `id_cv_candidat` et l'étape `selection`.
 
 Après validation :
 
@@ -152,7 +143,7 @@ Enregistrer les questions dans `questions_teste`.
 ### Affichage candidat
 
 Le questionnaire doit être visible uniquement pour les candidats présents dans
-`candidats_selec1` pour cette offre.
+`candidats_selec` à l'étape `selection` pour cette offre.
 
 Créer une page, par exemple :
 
@@ -178,7 +169,7 @@ POST /rh/offre/{offreId}/selection-questionnaire
 2. récupérer leur nombre de points ;
 3. trier par `points DESC` ;
 4. conserver les cinq meilleurs ;
-5. enregistrer les cinq lignes dans `candidats_selec2` ;
+5. enregistrer les cinq lignes dans `candidats_selec` à l'étape `Test` ;
 6. afficher la liste retenue.
 
 En cas d'égalité autour de la cinquième place, choisir une règle et l'appliquer
@@ -224,7 +215,7 @@ POST /rh/offre/{offreId}/selection-finale
 2. calculer la note finale à partir des points d'entretien ;
 3. trier par note finale décroissante ;
 4. attribuer les rangs `1`, `2`, `3`, etc. ;
-5. enregistrer les résultats dans `candidats_selec3`.
+5. enregistrer les résultats dans `candidats_selec` à l'étape `Entretien`.
 
 Afficher un tableau avec :
 
@@ -256,9 +247,11 @@ en changeant simplement l'URL.
    **Recrutement** de l'offre.
 4. Le RH coche les CV et valide la première sélection.
 5. Le RH ajoute les questions puis saisit les notes des candidats sélectionnés.
-6. L'application conserve les cinq meilleures notes dans `candidats_selec2`.
+6. L'application conserve les cinq meilleures notes dans `candidats_selec` à
+   l'étape `Test`.
 7. Le RH ajoute une grille d'entretien et saisit les notes.
-8. L'application calcule et affiche le classement final dans `candidats_selec3`.
+8. L'application calcule et affiche le classement final dans `candidats_selec` à
+   l'étape `Entretien`.
 9. Un candidat sélectionné peut consulter son questionnaire depuis le détail de
    l'offre.
 
@@ -268,11 +261,11 @@ Implémenter dans cet ordre :
 
 1. `CvCandidat` + repository ;
 2. formulaire et contrôleur candidat ;
-3. `CandidatsSelec1` + sélection RH ;
+3. `CandidatSelec` + `Etape` + sélection RH ;
 4. `QuestionsTeste` + questionnaire ;
-5. `CandidatsSelec2` + calcul du Top 5 ;
+5. `CandidatSelec` à l'étape `Test` + calcul du Top 5 ;
 6. `EntretienQualification` et `EntretienCandidat` ;
-7. `CandidatsSelec3` + classement final ;
+7. `CandidatSelec` à l'étape `Entretien` + classement final ;
 8. contrôles de rôle et tests.
 
 ## 11. Vérifications à faire
@@ -285,7 +278,7 @@ Tester le parcours avec plusieurs comptes :
 4. le RH valide la première sélection ;
 5. seuls les candidats sélectionnés voient le questionnaire ;
 6. le RH saisit les points ;
-7. les cinq meilleurs passent dans `candidats_selec2` ;
+7. les cinq meilleurs passent à l'étape `Test` dans `candidats_selec` ;
 8. le RH saisit les points d'entretien ;
-9. le classement final est correct ;
+9. le classement final à l'étape `Entretien` est correct ;
 10. une deuxième candidature identique est refusée.

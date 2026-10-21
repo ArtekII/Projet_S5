@@ -41,7 +41,7 @@
  </div></div>
 
  <div class="card shadow-sm mb-4"><div class="card-header">Top 5 questionnaire</div><div class="card-body">
-  <ol><c:forEach var="s" items="${top5}"><li>${s.candidatSelec1.cvCandidat.prenom} ${s.candidatSelec1.cvCandidat.nom} — ${s.points} points</li></c:forEach></ol>
+  <ol>  <c:forEach var="s" items="${top5}"><li>${s.cvCandidat.prenom} ${s.cvCandidat.nom} — ${s.note} points</li></c:forEach></ol>
  </div></div>
 
  <div class="card shadow-sm mb-4"><div class="card-header">3. Entretiens et classement final</div><div class="card-body">
@@ -52,12 +52,12 @@
    <h6>${entretien.nom}</h6>
    <form method="post" action="${pageContext.request.contextPath}/rh/offre/${offre.id}/notes-entretien">
     <input type="hidden" name="entretienId" value="${entretien.id}">
-    <table class="table table-sm"><tbody><c:forEach var="s" items="${top5}"><tr><td>${s.candidatSelec1.cvCandidat.prenom} ${s.candidatSelec1.cvCandidat.nom}</td><td><input name="points_${s.id}" type="number" min="0" step="0.01" class="form-control form-control-sm"></td></tr></c:forEach></tbody></table>
+    <table class="table table-sm"><tbody><c:forEach var="s" items="${top5}"><tr><td>${s.cvCandidat.prenom} ${s.cvCandidat.nom}</td><td><input name="points_${s.id}" type="number" min="0" step="0.01" class="form-control form-control-sm"></td></tr></c:forEach></tbody></table>
     <button class="btn btn-success btn-sm">Enregistrer les notes et recalculer</button>
    </form>
   </c:forEach>
   <table class="table table-sm mt-3"><thead><tr><th>Rang</th><th>Candidat</th><th>Note finale</th></tr></thead><tbody>
-   <c:forEach var="r" items="${classement}"><tr><td>${r.rang}</td><td>${r.candidatSelec2.candidatSelec1.cvCandidat.prenom} ${r.candidatSelec2.candidatSelec1.cvCandidat.nom}</td><td>${r.noteFinale}</td></tr></c:forEach>
+   <c:forEach var="r" items="${classement}"><tr><td>${r.rang}</td><td>${r.cvCandidat.prenom} ${r.cvCandidat.nom}</td><td>${r.note}</td></tr></c:forEach>
   </tbody></table>
  </div></div>
 </div></body></html>

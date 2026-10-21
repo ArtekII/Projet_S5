@@ -11,25 +11,23 @@ import java.util.*;
 @Service
 public class RecrutementService {
     private final CvCandidatRepository cvRepository;
-    private final CandidatSelec1Repository selection1Repository;
+    private final CandidatSelecRepository selectionRepository;
     private final QuestionTesteRepository questionRepository;
-    private final CandidatSelec2Repository selection2Repository;
     private final EntretienQualificationRepository qualificationRepository;
     private final EntretienCandidatRepository entretienRepository;
-    private final CandidatSelec3Repository selection3Repository;
+    private final EtapeRepository etapeRepository;
     private final OffreService offreService;
 
-    public RecrutementService(CvCandidatRepository cvRepository, CandidatSelec1Repository selection1Repository,
-            QuestionTesteRepository questionRepository, CandidatSelec2Repository selection2Repository,
-            EntretienQualificationRepository qualificationRepository, EntretienCandidatRepository entretienRepository,
-            CandidatSelec3Repository selection3Repository, OffreService offreService) {
+    public RecrutementService(CvCandidatRepository cvRepository, CandidatSelecRepository selectionRepository,
+            QuestionTesteRepository questionRepository, EntretienQualificationRepository qualificationRepository,
+            EntretienCandidatRepository entretienRepository, EtapeRepository etapeRepository,
+            OffreService offreService) {
         this.cvRepository = cvRepository;
-        this.selection1Repository = selection1Repository;
+        this.selectionRepository = selectionRepository;
         this.questionRepository = questionRepository;
-        this.selection2Repository = selection2Repository;
         this.qualificationRepository = qualificationRepository;
         this.entretienRepository = entretienRepository;
-        this.selection3Repository = selection3Repository;
+        this.etapeRepository = etapeRepository;
         this.offreService = offreService;
     }
 
@@ -41,22 +39,28 @@ public class RecrutementService {
                 .toList();
     }
 
-    public List<CandidatSelec1> selections1(Integer offreId) {
-        return selection1Repository.findByOffre_IdOrderByCvCandidat_AnneeExperienceDescCvCandidat_CreatedAtAsc(offreId);
+    public List<CandidatSelec> selections1(Integer offreId) {
+        return selectionRepository
+                .findByOffre_IdAndEtape_NomOrderByCvCandidat_AnneeExperienceDescCvCandidat_CreatedAtAsc(
+                        offreId, "selection");
     }
 
     @Transactional
     public void validerSelection1(Integer offreId, List<Integer> cvIds) {
         OffreEmploi offre = offrePubliee(offreId);
         Set<Integer> selected = cvIds == null ? Set.of() : new HashSet<>(cvIds);
+        Etape etape = etape("selection");
         for (CvCandidat cv : candidatures(offreId)) {
             if (selected.contains(cv.getId())
-                    && !selection1Repository.existsByOffre_IdAndCvCandidat_Id(offreId, cv.getId())) {
-                CandidatSelec1 selection = new CandidatSelec1();
+                    && selectionRepository
+                            .findByOffre_IdAndCvCandidat_IdAndEtape_Nom(offreId, cv.getId(), "selection")
+                            .isEmpty()) {
+                CandidatSelec selection = new CandidatSelec();
                 selection.setOffre(offre);
                 selection.setCvCandidat(cv);
+                selection.setEtape(etape);
                 selection.setDateSelection(LocalDateTime.now());
-                selection1Repository.save(selection);
+                selectionRepository.save(selection);
             }
         }
     }
@@ -85,37 +89,38 @@ public class RecrutementService {
     @Transactional
     public void enregistrerPointsQuestionnaire(Integer offreId, Map<Integer, BigDecimal> points) {
         offrePubliee(offreId);
-        for (CandidatSelec1 selection1 : selections1(offreId)) {
-            BigDecimal note = points == null ? null : points.get(selection1.getId());
+        Etape etapeTest = etape("Test");
+        for (CandidatSelec selection : selections1(offreId)) {
+            BigDecimal note = points == null ? null : points.get(selection.getId());
             if (note == null || note.signum() < 0)
                 continue;
-            CandidatSelec2 selection2 = selection2Repository.findByCandidatSelec1_Id(selection1.getId())
+            CandidatSelec test = selectionRepository
+                    .findByOffre_IdAndCvCandidat_IdAndEtape_Nom(offreId, selection.getCvCandidat().getId(), "Test")
                     .orElseGet(() -> {
-                        CandidatSelec2 created = new CandidatSelec2();
-                        created.setCandidatSelec1(selection1);
+                        CandidatSelec created = new CandidatSelec();
+                        created.setOffre(selection.getOffre());
+                        created.setCvCandidat(selection.getCvCandidat());
+                        created.setEtape(etapeTest);
+                        created.setDateSelection(LocalDateTime.now());
                         return created;
                     });
-            selection2.setPoints(note);
-            selection2.setDateSelection(LocalDateTime.now());
-            selection2Repository.save(selection2);
+            test.setNote(note);
+            selectionRepository.save(test);
         }
     }
 
     @Transactional
-    public List<CandidatSelec2> calculerTop5(Integer offreId) {
+    public List<CandidatSelec> calculerTop5(Integer offreId) {
         offrePubliee(offreId);
-        List<CandidatSelec2> notes = selection2Repository.findByCandidatSelec1_Offre_IdOrderByPointsDesc(offreId);
-        List<CandidatSelec2> top5 = notes.stream().limit(5).toList();
-        Set<Integer> ids = top5.stream().map(CandidatSelec2::getId).collect(java.util.stream.Collectors.toSet());
-        for (CandidatSelec2 note : notes) {
-            if (!ids.contains(note.getId()))
-                selection2Repository.delete(note);
-        }
+        List<CandidatSelec> notes = top5Source(offreId);
+        List<CandidatSelec> top5 = notes.stream().limit(5).toList();
+        Set<Integer> ids = top5.stream().map(CandidatSelec::getId).collect(java.util.stream.Collectors.toSet());
+        notes.stream().filter(note -> !ids.contains(note.getId())).forEach(selectionRepository::delete);
         return top5;
     }
 
-    public List<CandidatSelec2> top5(Integer offreId) {
-        return selection2Repository.findByCandidatSelec1_Offre_IdOrderByPointsDesc(offreId).stream().limit(5).toList();
+    public List<CandidatSelec> top5(Integer offreId) {
+        return top5Source(offreId).stream().limit(5).toList();
     }
 
     public List<EntretienQualification> entretiens(Integer offreId) {
@@ -139,16 +144,16 @@ public class RecrutementService {
         EntretienQualification qualification = qualificationRepository.findById(entretienId)
                 .filter(e -> e.getOffre().getId().equals(offreId))
                 .orElseThrow(() -> new IllegalArgumentException("Entretien introuvable."));
-        for (CandidatSelec2 selection2 : top5(offreId)) {
-            BigDecimal note = points == null ? null : points.get(selection2.getId());
+        for (CandidatSelec selection : top5(offreId)) {
+            BigDecimal note = points == null ? null : points.get(selection.getId());
             if (note == null || note.signum() < 0)
                 continue;
-            EntretienCandidat resultat = entretienRepository.findByCandidatSelec2_Id(selection2.getId()).stream()
+            EntretienCandidat resultat = entretienRepository.findByCandidatSelec_Id(selection.getId()).stream()
                     .filter(e -> e.getEntretienQualification().getId().equals(entretienId))
                     .findFirst().orElseGet(() -> {
                         EntretienCandidat created = new EntretienCandidat();
                         created.setEntretienQualification(qualification);
-                        created.setCandidatSelec2(selection2);
+                        created.setCandidatSelec(selection);
                         return created;
                     });
             resultat.setPoints(note);
@@ -157,33 +162,44 @@ public class RecrutementService {
     }
 
     @Transactional
-    public List<CandidatSelec3> calculerClassementFinal(Integer offreId) {
+    public List<CandidatSelec> calculerClassementFinal(Integer offreId) {
         offrePubliee(offreId);
-        List<CandidatSelec2> top5 = top5(offreId);
-        List<CandidatSelec3> classement = new ArrayList<>();
-        for (CandidatSelec2 selection2 : top5) {
-            BigDecimal total = entretienRepository.findByCandidatSelec2_Id(selection2.getId()).stream()
+        List<CandidatSelec> classement = new ArrayList<>();
+        for (CandidatSelec selection : top5(offreId)) {
+            BigDecimal total = entretienRepository.findByCandidatSelec_Id(selection.getId()).stream()
                     .map(EntretienCandidat::getPoints).reduce(BigDecimal.ZERO, BigDecimal::add);
-            CandidatSelec3 ligne = selection3Repository.findAll().stream()
-                    .filter(v -> v.getCandidatSelec2().getId().equals(selection2.getId()))
-                    .findFirst().orElseGet(() -> {
-                        CandidatSelec3 created = new CandidatSelec3();
-                        created.setCandidatSelec2(selection2);
+            CandidatSelec ligne = selectionRepository
+                    .findByOffre_IdAndCvCandidat_IdAndEtape_Nom(offreId, selection.getCvCandidat().getId(), "Entretien")
+                    .orElseGet(() -> {
+                        CandidatSelec created = new CandidatSelec();
+                        created.setOffre(selection.getOffre());
+                        created.setCvCandidat(selection.getCvCandidat());
+                        created.setEtape(etape("Entretien"));
+                        created.setDateSelection(LocalDateTime.now());
                         return created;
                     });
-            ligne.setNoteFinale(total);
+            ligne.setNote(total);
             classement.add(ligne);
         }
-        classement.sort(Comparator.comparing(CandidatSelec3::getNoteFinale).reversed());
+        classement.sort(Comparator.comparing(CandidatSelec::getNote).reversed());
         for (int i = 0; i < classement.size(); i++) {
             classement.get(i).setRang(i + 1);
-            selection3Repository.save(classement.get(i));
+            selectionRepository.save(classement.get(i));
         }
         return classement;
     }
 
-    public List<CandidatSelec3> classement(Integer offreId) {
-        return selection3Repository.findByCandidatSelec2_CandidatSelec1_Offre_IdOrderByRangAsc(offreId);
+    public List<CandidatSelec> classement(Integer offreId) {
+        return selectionRepository.findByOffre_IdAndEtape_NomOrderByRangAsc(offreId, "Entretien");
+    }
+
+    private List<CandidatSelec> top5Source(Integer offreId) {
+        return selectionRepository.findByOffre_IdAndEtape_NomOrderByNoteDesc(offreId, "Test");
+    }
+
+    private Etape etape(String nom) {
+        return etapeRepository.findByNom(nom)
+                .orElseThrow(() -> new IllegalStateException("Etape introuvable : " + nom));
     }
 
     private OffreEmploi offrePubliee(Integer offreId) {
