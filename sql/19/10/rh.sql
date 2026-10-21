@@ -55,3 +55,15 @@ CREATE TABLE IF NOT EXISTS candidats_selec3 (
     note_finale NUMERIC(5, 2),
     rang INTEGER
 );
+
+
+
+
+CREATE TABLE Candidats_selec (
+    id
+    id_etape
+    id_candidature
+    note
+    rang
+    id_poste
+)
