@@ -1,9 +1,13 @@
+
 package com.project.repository;
+
+import java.util.List;
 
 import com.project.entity.Etape;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
 
 public interface EtapeRepository extends JpaRepository<Etape, Integer> {
-    Optional<Etape> findByNom(String nom);
+
+    /** Catalogue des etapes du processus de recrutement (table {@code etape}). */
+    List<Etape> findAllByOrderByIdAsc();
 }
