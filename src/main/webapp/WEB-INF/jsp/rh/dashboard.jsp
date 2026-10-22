@@ -95,10 +95,10 @@
   </div>
   <div class="card shadow-sm mt-4"><div class="card-header">Historique toutes offres</div>
   <div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0">
-   <thead><tr><th>Poste</th><th>Dept</th><th>Exp</th><th>Places</th><th>Salaire</th><th>Statut</th></tr></thead>
+   <thead><tr><th>Poste</th><th>Dept</th><th>Exp</th><th>Places</th><th>Salaire</th><th>Statut</th><th>Recrutement</th></tr></thead>
    <tbody>
     <c:forEach var="o" items="${toutesOffres}">
-     <tr><td>${o.poste.intitule}</td><td>${o.departement.nom}</td><td>${o.anneesExperience}</td><td>${o.nbPlaces}</td><td>${empty o.salaire ? '-' : o.salaire}</td><td><span class="badge bg-secondary">${o.statut.libelle}</span></td></tr>
+     <tr><td>${o.poste.intitule}</td><td>${o.departement.nom}</td><td>${o.anneesExperience}</td><td>${o.nbPlaces}</td><td>${empty o.salaire ? '-' : o.salaire}</td><td><span class="badge bg-secondary">${o.statut.libelle}</span></td><td><a class="btn btn-sm btn-outline-primary" href="${pageContext.request.contextPath}/rh/offre/${o.id}/recrutement">Ouvrir</a></td></tr>
     </c:forEach>
    </tbody>
   </table></div></div>

@@ -1,39 +1,25 @@
-
 package com.project.entity;
 
+import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-
 @Entity
-@Table(name = "cv_candidat")
+@Table(name = "cv_candidat", uniqueConstraints = @UniqueConstraint(columnNames = {"id_candidat", "id_offre"}))
 public class CvCandidat {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "id_candidat", nullable = false)
     private Utilisateur candidat;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "id_offre", nullable = false)
-    private OffreEmploi offreEmploi;
+    private OffreEmploi offre;
 
-    @Column(name = "nom", nullable = false, length = 255)
     private String nom;
-
-    @Column(name = "prenom", nullable = false, length = 255)
     private String prenom;
 
     @Column(name = "date_naissance")
@@ -42,14 +28,10 @@ public class CvCandidat {
     @Column(name = "annee_experience", nullable = false)
     private Integer anneeExperience;
 
-    @Column(name = "email", length = 255)
     private String email;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
-
-    public CvCandidat() {
-    }
 
     public Integer getId() {
         return id;
@@ -67,12 +49,12 @@ public class CvCandidat {
         this.candidat = candidat;
     }
 
-    public OffreEmploi getOffreEmploi() {
-        return offreEmploi;
+    public OffreEmploi getOffre() {
+        return offre;
     }
 
-    public void setOffreEmploi(OffreEmploi offreEmploi) {
-        this.offreEmploi = offreEmploi;
+    public void setOffre(OffreEmploi offre) {
+        this.offre = offre;
     }
 
     public String getNom() {

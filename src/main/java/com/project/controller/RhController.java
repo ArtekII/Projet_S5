@@ -9,30 +9,27 @@ import com.project.entity.Utilisateur;
 import com.project.service.AuthService;
 import com.project.service.CandidatureService;
 import com.project.service.OffreService;
-import com.project.service.QuestionnaireService;
+import com.project.service.RecrutementService;
+import com.project.entity.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Controller
 @RequestMapping("/rh")
 public class RhController {
   private final OffreService offreService;
   private final AuthService authService;
-  private final CandidatureService candidatureService;
-  private final QuestionnaireService questionnaireService;
+  private final RecrutementService recrutementService;
 
-  public RhController(OffreService o, AuthService a, CandidatureService c,
-      QuestionnaireService q) {
+  public RhController(OffreService o, AuthService a, RecrutementService r) {
     this.offreService = o;
     this.authService = a;
-    this.candidatureService = c;
-    this.questionnaireService = q;
+    this.recrutementService = r;
   }
 
   @GetMapping("/dashboard")
@@ -48,52 +45,98 @@ public class RhController {
     return "rh/dashboard";
   }
 
-  /** Vue RH des candidatures en cours : etape en cours et reponses au questionnaire. */
-  private List<CandidatureRhVue> buildCandidaturesRh() {
-    List<CandidatureRhVue> vues = new ArrayList<>();
-    for (Candidature candidature : candidatureService.getCandidaturesEnCours()) {
-      QuestionnaireVue questionnaire = QuestionnaireVue.vide();
-      if (candidature.getEtape() != null
-          && "QUESTIONNAIRE".equals(candidature.getEtape().getCode())) {
-        Questionnaire q = questionnaireService
-            .getQuestionnaire(candidature.getOffre().getId()).orElse(null);
-        if (q != null) {
-          List<Question> questions = questionnaireService.getQuestions(q.getId());
-          questionnaire = QuestionnaireVue.de(q, questions,
-              questionnaireService.getReponses(candidature.getId()));
+  @GetMapping("/offre/{id}/recrutement")
+  public String recrutement(@PathVariable Integer id, HttpSession session, Model model) {
+    authService.currentUser(session).orElseThrow();
+    model.addAttribute("offre", offreService.findOffre(id).orElseThrow());
+    model.addAttribute("candidatures", recrutementService.candidatures(id));
+    model.addAttribute("selection1", recrutementService.selections1(id));
+    model.addAttribute("questions", recrutementService.questions(id));
+    model.addAttribute("top5", recrutementService.top5(id));
+    model.addAttribute("entretiens", recrutementService.entretiens(id));
+    model.addAttribute("classement", recrutementService.classement(id));
+    return "rh/recrutement";
+  }
+
+  @PostMapping("/offre/{id}/selection-cv")
+  public String selectionCv(@PathVariable Integer id, @RequestParam(required = false) List<Integer> cvIds,
+      HttpSession session, RedirectAttributes ra) {
+    authService.currentUser(session).orElseThrow();
+    try {
+      recrutementService.validerSelection1(id, cvIds);
+      ra.addFlashAttribute("success", "Première sélection enregistrée.");
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/offre/" + id + "/recrutement";
+  }
+
+  @PostMapping("/offre/{id}/question")
+  public String question(@PathVariable Integer id, @RequestParam String texte, @RequestParam Integer pointsMax,
+      HttpSession session, RedirectAttributes ra) {
+    authService.currentUser(session).orElseThrow();
+    try {
+      recrutementService.ajouterQuestion(id, texte, pointsMax);
+      ra.addFlashAttribute("success", "Question ajoutée.");
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/offre/" + id + "/recrutement";
+  }
+
+  @PostMapping("/offre/{id}/notes-questionnaire")
+  public String notesQuestionnaire(@PathVariable Integer id, @RequestParam Map<String, String> params,
+      HttpSession session, RedirectAttributes ra) {
+    authService.currentUser(session).orElseThrow();
+    try {
+      recrutementService.enregistrerPointsQuestionnaire(id, parsePoints(params));
+      recrutementService.calculerTop5(id);
+      ra.addFlashAttribute("success", "Notes enregistrées et Top 5 calculé.");
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/offre/" + id + "/recrutement";
+  }
+
+  @PostMapping("/offre/{id}/entretien")
+  public String entretien(@PathVariable Integer id, @RequestParam String nom,
+      HttpSession session, RedirectAttributes ra) {
+    authService.currentUser(session).orElseThrow();
+    try {
+      recrutementService.ajouterEntretien(id, nom);
+      ra.addFlashAttribute("success", "Grille d'entretien ajoutée.");
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/offre/" + id + "/recrutement";
+  }
+
+  @PostMapping("/offre/{id}/notes-entretien")
+  public String notesEntretien(@PathVariable Integer id, @RequestParam Integer entretienId,
+      @RequestParam Map<String, String> params, HttpSession session, RedirectAttributes ra) {
+    authService.currentUser(session).orElseThrow();
+    try {
+      recrutementService.enregistrerNotesEntretien(id, entretienId, parsePoints(params));
+      recrutementService.calculerClassementFinal(id);
+      ra.addFlashAttribute("success", "Notes d'entretien enregistrées et classement calculé.");
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/offre/" + id + "/recrutement";
+  }
+
+  private Map<Integer, BigDecimal> parsePoints(Map<String, String> params) {
+    Map<Integer, BigDecimal> points = new HashMap<>();
+    params.forEach((key, value) -> {
+      if (key.startsWith("points_") && value != null && !value.isBlank()) {
+        try {
+          points.put(Integer.valueOf(key.substring(7)), new BigDecimal(value));
+        } catch (NumberFormatException ignored) {
+          throw new IllegalArgumentException("Une note est invalide.");
         }
       }
-      vues.add(new CandidatureRhVue(candidature, questionnaire));
-    }
-    return vues;
-  }
-
-  /** Le RH valide l'etape en cours : la candidature passe a l'etape suivante. */
-  @PostMapping("/candidature/{id}/valider")
-  public String validerCandidature(@PathVariable Integer id, HttpSession session,
-      RedirectAttributes ra) {
-    Utilisateur u = authService.currentUser(session).orElseThrow();
-    try {
-      candidatureService.validerEtapeSuivante(id, u);
-      ra.addFlashAttribute("success", "Etape validee : la candidature passe a l'etape suivante.");
-    } catch (Exception e) {
-      ra.addFlashAttribute("error", e.getMessage());
-    }
-    return "redirect:/rh/dashboard";
-  }
-
-  /** Le RH elimine la candidature. */
-  @PostMapping("/candidature/{id}/eliminer")
-  public String eliminerCandidature(@PathVariable Integer id, HttpSession session,
-      RedirectAttributes ra) {
-    Utilisateur u = authService.currentUser(session).orElseThrow();
-    try {
-      candidatureService.eliminer(id, u);
-      ra.addFlashAttribute("success", "Candidature eliminee.");
-    } catch (Exception e) {
-      ra.addFlashAttribute("error", e.getMessage());
-    }
-    return "redirect:/rh/dashboard";
+    });
+    return points;
   }
 
   @PostMapping("/offre/{id}/valider")
