@@ -322,8 +322,7 @@
                 <body>
                     <div class="wrap">
                         <header class="top">
-                            <div class="logo"><span>Job</span>Liste</div><button class="login" type="button">Se
-                                connecter</button>
+                            <div class="logo"><span>Job</span>Liste</div><a href="/login" class="login">Se connecter</a><a href="/register" class="login">S'inscrire</a>
                         </header>
                         <section class="hero">
                             <h1>Trouvez votre prochain poste</h1>
@@ -396,7 +395,6 @@
                                         <% } %>
 
                             </div>
-                            ```
                         </main>
                     </div>
                 </body>
