@@ -132,6 +132,7 @@ public class JobOffreController {
             vue.setCandidature(candidature);
             vue.setEtapeValidee(etapeValidee(candidature));
             vue.setQuestionnaire(chargerQuestionnaire(candidature));
+            vue.setEntretien(candidatureService.getEntretien(candidature.getId()).orElse(null));
         }
 
         for (Map.Entry<Integer, List<CandidatsSelec>> entry : etapesParOffre.entrySet()) {

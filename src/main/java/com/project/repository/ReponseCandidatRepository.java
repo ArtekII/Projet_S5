@@ -11,6 +11,8 @@ public interface ReponseCandidatRepository extends JpaRepository<ReponseCandidat
 
     List<ReponseCandidat> findByCandidature_Id(Integer idCandidature);
 
+    List<ReponseCandidat> findByCandidature_Offre_Id(Integer idOffre);
+
     Optional<ReponseCandidat> findByCandidature_IdAndQuestion_Id(Integer idCandidature,
             Integer idQuestion);
 }

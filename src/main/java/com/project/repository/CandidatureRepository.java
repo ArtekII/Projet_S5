@@ -50,4 +50,18 @@ public interface CandidatureRepository extends JpaRepository<Candidature, Intege
         ORDER BY c.createdAt DESC
     """)
     List<Candidature> findAllEnCoursAvecDetails();
+
+    @Query("""
+        SELECT c
+        FROM Candidature c
+        JOIN FETCH c.offre o
+        JOIN FETCH o.poste
+        JOIN FETCH o.departement
+        JOIN FETCH c.candidat
+        JOIN FETCH c.statut
+        JOIN FETCH c.etape
+        WHERE o.id = :idOffre
+        ORDER BY c.createdAt DESC
+    """)
+    List<Candidature> findByOffreIdAvecDetails(@Param("idOffre") Integer idOffre);
 }

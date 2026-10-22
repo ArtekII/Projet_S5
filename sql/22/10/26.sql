@@ -42,7 +42,7 @@ SELECT id_candidat, id_offre, 'Rasoanaivo', 'Luc', DATE '1997-04-12', 4,
 FROM a_creer;
 
 -- 2. Etapes franchies par le candidat (table candidats_selec)
---    id_etape : 1 = selection, 2 = Entretien, 3 = Test
+--    Les etapes sont resolues par leur nom pour ne pas dependre des identifiants.
 INSERT INTO candidats_selec (id_offre, id_cv_candidat, id_etape, note, rang, date_selection)
 SELECT cv.id_offre, cv.id, e.id, v.note, v.rang,
        NOW() - (v.jours * INTERVAL '1 day')
@@ -51,12 +51,12 @@ JOIN utilisateur u ON u.id = cv.id_candidat
 JOIN offre_emploi o ON o.id = cv.id_offre
 JOIN poste p ON p.id = o.id_poste
 CROSS JOIN (VALUES
-    ('Developpeur Junior', 1, 15.00::numeric, 1, 12),
-    ('Developpeur Junior', 2, 17.50::numeric, 1, 8),
-    ('Developpeur Junior', 3, 18.00::numeric, 1, 4),
-    ('Developpeur Senior', 1, 12.00::numeric, 3, 6)
-) AS v(intitule, id_etape, note, rang, jours)
-JOIN etape e ON e.id = v.id_etape
+    ('Developpeur Junior', 'selection', 15.00::numeric, 1, 12),
+    ('Developpeur Junior', 'Test', 17.50::numeric, 1, 8),
+    ('Developpeur Junior', 'Entretien', 18.00::numeric, 1, 4),
+    ('Developpeur Senior', 'selection', 12.00::numeric, 3, 6)
+) AS v(intitule, nom_etape, note, rang, jours)
+JOIN etape e ON e.nom = v.nom_etape
 WHERE u.email = 'candidat@demo.com'
   AND p.intitule = v.intitule
   AND NOT EXISTS (

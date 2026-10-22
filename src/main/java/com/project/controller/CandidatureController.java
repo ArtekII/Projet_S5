@@ -124,10 +124,14 @@ public class CandidatureController {
             }
         }
 
-        questionnaireService.enregistrerReponses(candidature, questions, choixParQuestion,
-                texteParQuestion);
-        redirect.addFlashAttribute("success",
-                "Vos réponses ont été enregistrées : elles sont en attente de validation par le RH.");
+        try {
+            questionnaireService.enregistrerReponses(candidature, questions, choixParQuestion,
+                    texteParQuestion);
+            redirect.addFlashAttribute("success",
+                    "Vos réponses ont été enregistrées : elles sont en attente de validation par le RH.");
+        } catch (IllegalStateException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
         return "redirect:/espaceCandidat?onglet=cand";
     }
 

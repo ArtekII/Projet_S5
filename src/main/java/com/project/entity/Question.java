@@ -103,4 +103,18 @@ public class Question {
     public void setChoix(List<ChoixReponse> choix) {
         this.choix = choix;
     }
+
+    public String getChoixTexte() {
+        return choix.stream().map(ChoixReponse::getLibelle)
+                .reduce((a, b) -> a + "|" + b).orElse("");
+    }
+
+    public Integer getBonneReponseIndex() {
+        for (int i = 0; i < choix.size(); i++) {
+            if (choix.get(i).isEstCorrect()) {
+                return i;
+            }
+        }
+        return null;
+    }
 }

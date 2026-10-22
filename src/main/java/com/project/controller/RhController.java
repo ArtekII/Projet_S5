@@ -16,8 +16,12 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/rh")
@@ -45,25 +49,54 @@ public class RhController {
     model.addAttribute("toutesOffres", offreService.toutesOffres());
     model.addAttribute("toutesDemandes", offreService.toutesDemandes());
     model.addAttribute("candidaturesRh", buildCandidaturesRh());
+    Map<Integer, Questionnaire> questionnairesParOffre = new HashMap<>();
+    for (Questionnaire questionnaire : questionnaireService.getQuestionnaires()) {
+      questionnairesParOffre.put(questionnaire.getOffre().getId(), questionnaire);
+    }
+    model.addAttribute("questionnairesParOffre", questionnairesParOffre);
     return "rh/dashboard";
+  }
+
+  @GetMapping("/offre/{id}/candidats")
+  public String candidatsParOffre(@PathVariable Integer id, HttpSession session, Model model) {
+    Utilisateur u = authService.currentUser(session).orElseThrow();
+    Questionnaire questionnaire = questionnaireService.getQuestionnaire(id).orElse(null);
+    List<Question> questions = questionnaire == null ? List.of()
+        : questionnaireService.getQuestions(questionnaire.getId());
+    List<CandidatureRhVue> candidatures = buildCandidatures(
+        candidatureService.getCandidaturesByOffre(id), questionnaire, questions);
+    model.addAttribute("user", u);
+    model.addAttribute("offre", offreService.toutesOffres().stream()
+        .filter(offre -> id.equals(offre.getId())).findFirst().orElseThrow());
+    model.addAttribute("candidaturesRh", candidatures);
+    model.addAttribute("questionnaire", questionnaire);
+    model.addAttribute("questions", questions);
+    return "rh/candidats-offre";
   }
 
   /** Vue RH des candidatures en cours : etape en cours et reponses au questionnaire. */
   private List<CandidatureRhVue> buildCandidaturesRh() {
+    return buildCandidatures(candidatureService.getCandidaturesEnCours(), null, null);
+  }
+
+  private List<CandidatureRhVue> buildCandidatures(List<Candidature> candidatures,
+      Questionnaire questionnaireDefinition, List<Question> questions) {
     List<CandidatureRhVue> vues = new ArrayList<>();
-    for (Candidature candidature : candidatureService.getCandidaturesEnCours()) {
-      QuestionnaireVue questionnaire = QuestionnaireVue.vide();
-      if (candidature.getEtape() != null
-          && "QUESTIONNAIRE".equals(candidature.getEtape().getCode())) {
-        Questionnaire q = questionnaireService
+    for (Candidature candidature : candidatures) {
+      QuestionnaireVue questionnaireVue = QuestionnaireVue.vide();
+      if (questionnaireDefinition != null || (candidature.getEtape() != null
+          && "QUESTIONNAIRE".equals(candidature.getEtape().getCode()))) {
+        Questionnaire q = questionnaireDefinition != null ? questionnaireDefinition
+            : questionnaireService
             .getQuestionnaire(candidature.getOffre().getId()).orElse(null);
         if (q != null) {
-          List<Question> questions = questionnaireService.getQuestions(q.getId());
-          questionnaire = QuestionnaireVue.de(q, questions,
+          List<Question> questionsPourCandidature = questions != null ? questions
+              : questionnaireService.getQuestions(q.getId());
+          questionnaireVue = QuestionnaireVue.de(q, questionsPourCandidature,
               questionnaireService.getReponses(candidature.getId()));
         }
       }
-      vues.add(new CandidatureRhVue(candidature, questionnaire));
+      vues.add(new CandidatureRhVue(candidature, questionnaireVue));
     }
     return vues;
   }
@@ -91,6 +124,107 @@ public class RhController {
       candidatureService.eliminer(id, u);
       ra.addFlashAttribute("success", "Candidature eliminee.");
     } catch (Exception e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/dashboard";
+  }
+
+  @PostMapping("/candidature/{id}/entretien")
+  public String noterEntretien(@PathVariable Integer id,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+          LocalDateTime dateEntretien,
+      @RequestParam String lieu,
+      @RequestParam BigDecimal noteHonneteteCv,
+      @RequestParam BigDecimal notePersonnalite,
+      @RequestParam BigDecimal noteCompetences,
+      HttpSession session, RedirectAttributes ra) {
+    Utilisateur u = authService.currentUser(session).orElseThrow();
+    try {
+      candidatureService.enregistrerEntretien(id, u, dateEntretien, lieu, noteHonneteteCv,
+          notePersonnalite, noteCompetences);
+      ra.addFlashAttribute("success", "Evaluation de l'entretien enregistrée.");
+    } catch (Exception e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/dashboard";
+  }
+
+  @PostMapping("/questionnaire")
+  public String creerQuestionnaire(@RequestParam Integer idOffre,
+      @RequestParam String titre,
+      @RequestParam(required = false) BigDecimal seuilReussite,
+      @RequestParam List<String> enonce,
+      @RequestParam(required = false) List<BigDecimal> points,
+      @RequestParam(required = false) List<String> type,
+      @RequestParam(required = false) List<String> choix,
+      @RequestParam(required = false) List<String> bonneReponse,
+      HttpSession session, RedirectAttributes ra) {
+    Utilisateur u = authService.currentUser(session).orElseThrow();
+    try {
+      List<Integer> indicesCorrects = new ArrayList<>();
+      if (bonneReponse != null) {
+        for (String valeur : bonneReponse) {
+          indicesCorrects.add(valeur == null || valeur.isBlank() ? null
+              : Integer.valueOf(valeur));
+        }
+      }
+      questionnaireService.creerQuestionnaire(idOffre, u, titre, seuilReussite,
+          enonce, points, type, choix, indicesCorrects);
+      ra.addFlashAttribute("success", "Questionnaire créé pour cette offre.");
+    } catch (RuntimeException e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/dashboard";
+  }
+
+  @PostMapping("/offre/{id}/questionnaire")
+  public String modifierQuestionnaire(@PathVariable Integer id,
+      @RequestParam String titre,
+      @RequestParam(required = false) BigDecimal seuilReussite,
+      @RequestParam List<String> enonce,
+      @RequestParam(required = false) List<BigDecimal> points,
+      @RequestParam(required = false) List<String> type,
+      @RequestParam(required = false) List<String> choix,
+      @RequestParam(required = false) List<String> bonneReponse,
+      RedirectAttributes ra) {
+    try {
+      List<Integer> indicesCorrects = new ArrayList<>();
+      if (bonneReponse != null) {
+        for (String valeur : bonneReponse) {
+          indicesCorrects.add(valeur == null || valeur.isBlank() ? null
+              : Integer.valueOf(valeur));
+        }
+      }
+      questionnaireService.modifierQuestionnaire(id, titre, seuilReussite, enonce, points,
+          type, choix, indicesCorrects);
+      ra.addFlashAttribute("success", "Questionnaire modifié et renvoyé aux candidats.");
+    } catch (RuntimeException e) {
+      ra.addFlashAttribute("error", e.getMessage());
+    }
+    return "redirect:/rh/offre/" + id + "/candidats";
+  }
+
+  @PostMapping("/candidature/{id}/questionnaire/noter")
+  public String noterQuestionnaire(@PathVariable Integer id,
+      @RequestParam Map<String, String> params,
+      RedirectAttributes ra) {
+    Map<Integer, BigDecimal> notes = new HashMap<>();
+    for (Map.Entry<String, String> entry : params.entrySet()) {
+      if (!entry.getKey().startsWith("note_") || entry.getValue().isBlank()) {
+        continue;
+      }
+      try {
+        notes.put(Integer.parseInt(entry.getKey().substring(5)),
+            new BigDecimal(entry.getValue()));
+      } catch (NumberFormatException e) {
+        ra.addFlashAttribute("error", "Une note du questionnaire est invalide.");
+        return "redirect:/rh/dashboard";
+      }
+    }
+    try {
+      BigDecimal score = questionnaireService.noterReponses(id, notes);
+      ra.addFlashAttribute("success", "Questionnaire noté. Score obtenu : " + score + ".");
+    } catch (RuntimeException e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
     return "redirect:/rh/dashboard";

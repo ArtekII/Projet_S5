@@ -8,6 +8,7 @@ import java.util.List;
 import com.project.entity.Candidature;
 import com.project.entity.CvCandidat;
 import com.project.entity.OffreEmploi;
+import com.project.entity.Entretien;
 
 /**
  * Vue d'une candidature du candidat connecte : l'offre postulee, le CV depose
@@ -21,6 +22,7 @@ public class CandidatureVue {
     private Candidature candidature;
     private QuestionnaireVue questionnaire = QuestionnaireVue.vide();
     private boolean etapeValidee;
+    private Entretien entretien;
 
     public CandidatureVue(OffreEmploi offre) {
         this.offre = offre;
@@ -109,6 +111,14 @@ public class CandidatureVue {
 
     public void setCandidature(Candidature candidature) {
         this.candidature = candidature;
+    }
+
+    public Entretien getEntretien() {
+        return entretien;
+    }
+
+    public void setEntretien(Entretien entretien) {
+        this.entretien = entretien;
     }
 
     public CvCandidat getCvCandidat() {

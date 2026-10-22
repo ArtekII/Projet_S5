@@ -259,6 +259,15 @@ ${offre.poste.description}
 </c:if>
 <p class="meta">${vue.resumeEtapes}</p>
 
+<c:if test="${vue.codeEtape eq 'ENTRETIEN' and not empty vue.entretien}">
+<div class="box">
+<h3>Convocation à l'entretien</h3>
+<p class="meta"><b>Date et heure :</b> ${vue.entretien.dateEntretien}</p>
+<p class="meta"><b>Lieu :</b> ${vue.entretien.lieu}</p>
+<p class="meta">Le RH a enregistré votre rendez-vous. Consultez ces informations avant l'entretien.</p>
+</div>
+</c:if>
+
 <c:if test="${vue.questionnaireARemplir}">
 <div class="box">
 <h3>${vue.questionnaire.titre}</h3>

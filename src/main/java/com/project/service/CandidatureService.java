@@ -1,5 +1,6 @@
 
 package com.project.service;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,20 +11,26 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.entity.Candidature;
 import com.project.entity.CandidatureEtape;
+import com.project.entity.CandidatsSelec;
 import com.project.entity.Cv;
 import com.project.entity.CvCandidat;
+import com.project.entity.Entretien;
+import com.project.entity.Etape;
 import com.project.entity.EtapeRecrutement;
 import com.project.entity.OffreEmploi;
 import com.project.entity.Resultat;
-import com.project.entity.StatutCandidature;
 import com.project.entity.Utilisateur;
 import com.project.repository.CandidatureEtapeRepository;
 import com.project.repository.CandidatureRepository;
+import com.project.repository.CandidatsSelecRepository;
 import com.project.repository.CvCandidatRepository;
 import com.project.repository.CvRepository;
 import com.project.repository.EtapeRecrutementRepository;
+import com.project.repository.EtapeRepository;
+import com.project.repository.EntretienRepository;
 import com.project.repository.OffreEmploiRepository;
 import com.project.repository.ResultatRepository;
+import com.project.repository.QuestionnaireRepository;
 import com.project.repository.StatutCandidatureRepository;
 import com.project.repository.UtilisateurRepository;
 
@@ -39,6 +46,10 @@ public class CandidatureService {
     private final StatutCandidatureRepository statutCandidatureRepository;
     private final CandidatureEtapeRepository candidatureEtapeRepository;
     private final ResultatRepository resultatRepository;
+    private final CandidatsSelecRepository candidatsSelecRepository;
+    private final EtapeRepository etapeRepository;
+    private final EntretienRepository entretienRepository;
+    private final QuestionnaireRepository questionnaireRepository;
 
     public CandidatureService(CandidatureRepository candidatureRepository,
             CvCandidatRepository cvCandidatRepository,
@@ -48,7 +59,11 @@ public class CandidatureService {
             EtapeRecrutementRepository etapeRecrutementRepository,
             StatutCandidatureRepository statutCandidatureRepository,
             CandidatureEtapeRepository candidatureEtapeRepository,
-            ResultatRepository resultatRepository) {
+            ResultatRepository resultatRepository,
+            CandidatsSelecRepository candidatsSelecRepository,
+            EtapeRepository etapeRepository,
+            EntretienRepository entretienRepository,
+            QuestionnaireRepository questionnaireRepository) {
         this.candidatureRepository = candidatureRepository;
         this.cvCandidatRepository = cvCandidatRepository;
         this.cvRepository = cvRepository;
@@ -58,6 +73,10 @@ public class CandidatureService {
         this.statutCandidatureRepository = statutCandidatureRepository;
         this.candidatureEtapeRepository = candidatureEtapeRepository;
         this.resultatRepository = resultatRepository;
+        this.candidatsSelecRepository = candidatsSelecRepository;
+        this.etapeRepository = etapeRepository;
+        this.entretienRepository = entretienRepository;
+        this.questionnaireRepository = questionnaireRepository;
     }
 
     public List<Candidature> getCandidaturesByCandidatId(Integer userId) {
@@ -88,7 +107,9 @@ public class CandidatureService {
                 .orElseThrow(() -> new IllegalStateException("Offre introuvable."));
 
         // CV depose par le candidat (table cv_candidat)
-        CvCandidat cvCandidat = new CvCandidat();
+        CvCandidat cvCandidat = cvCandidatRepository
+                .findByCandidat_IdAndOffreEmploi_Id(idCandidat, idOffre)
+                .orElseGet(CvCandidat::new);
         cvCandidat.setCandidat(candidat);
         cvCandidat.setOffreEmploi(offre);
         cvCandidat.setNom(nom);
@@ -136,7 +157,9 @@ public class CandidatureService {
                 .orElseThrow(() -> new IllegalStateException("Candidature introuvable."));
 
         EtapeRecrutement etapeEnCours = candidature.getEtape();
+        verifierEtapeMetier(candidature, etapeEnCours);
         Resultat reussi = resultatRepository.findByCode("REUSSI").orElseThrow();
+        enregistrerSelection(candidature, etapeEnCours);
 
         CandidatureEtape historique = new CandidatureEtape();
         historique.setCandidature(candidature);
@@ -194,9 +217,55 @@ public class CandidatureService {
         return candidatureRepository.save(candidature);
     }
 
+    /**
+     * Enregistre l'evaluation d'entretien. L'entretien est lie a la candidature
+     * du portail et sa note est aussi recopiee dans candidats_selec.
+     */
+    @Transactional
+    public Entretien enregistrerEntretien(Integer idCandidature, Utilisateur rh,
+            LocalDateTime dateEntretien, String lieu,
+            BigDecimal noteHonneteteCv, BigDecimal notePersonnalite,
+            BigDecimal noteCompetences) {
+        verifierNote(noteHonneteteCv);
+        verifierNote(notePersonnalite);
+        verifierNote(noteCompetences);
+        Candidature candidature = candidatureRepository.findById(idCandidature)
+                .orElseThrow(() -> new IllegalStateException("Candidature introuvable."));
+        if (candidature.getEtape() == null
+                || !"ENTRETIEN".equals(candidature.getEtape().getCode())) {
+            throw new IllegalStateException("La candidature n'est pas à l'étape entretien.");
+        }
+        if (dateEntretien == null || lieu == null || lieu.isBlank()) {
+            throw new IllegalArgumentException("La date, l'heure et le lieu de l'entretien sont obligatoires.");
+        }
+
+        Entretien entretien = entretienRepository.findByCandidature_Id(idCandidature)
+                .orElseGet(Entretien::new);
+        entretien.setCandidature(candidature);
+        entretien.setRh(rh);
+        entretien.setDateEntretien(dateEntretien);
+        entretien.setLieu(lieu.trim());
+        entretien.setNoteHonneteteCv(noteHonneteteCv);
+        entretien.setNotePersonnalite(notePersonnalite);
+        entretien.setNoteCompetences(noteCompetences);
+        Entretien saved = entretienRepository.save(entretien);
+        enregistrerSelection(candidature, candidature.getEtape());
+        recalculerClassement(candidature.getOffre().getId(), "Entretien");
+        return saved;
+    }
+
+    public Optional<Entretien> getEntretien(Integer idCandidature) {
+        return entretienRepository.findByCandidature_Id(idCandidature);
+    }
+
     /** Candidatures en cours de traitement, pour le tableau de bord RH. */
     public List<Candidature> getCandidaturesEnCours() {
         return candidatureRepository.findAllEnCoursAvecDetails();
+    }
+
+    /** Toutes les candidatures d'une offre, y compris celles deja eliminees. */
+    public List<Candidature> getCandidaturesByOffre(Integer idOffre) {
+        return candidatureRepository.findByOffreIdAvecDetails(idOffre);
     }
 
     /** Etapes deja validees par le RH pour une candidature. */
@@ -207,5 +276,88 @@ public class CandidatureService {
 
     public Optional<Candidature> findCandidature(Integer idCandidature) {
         return candidatureRepository.findById(idCandidature);
+    }
+
+    private void verifierEtapeMetier(Candidature candidature, EtapeRecrutement etape) {
+        if (etape == null) {
+            throw new IllegalStateException("Etape de candidature absente.");
+        }
+        if ("QUESTIONNAIRE".equals(etape.getCode())) {
+            BigDecimal score = candidature.getScoreQuestionnaire();
+            BigDecimal seuil = questionnaireRepository.findByOffre_Id(candidature.getOffre().getId())
+                    .map(q -> q.getSeuilReussite())
+                    .orElse(BigDecimal.ZERO);
+            if (score == null || score.compareTo(seuil) < 0) {
+                throw new IllegalStateException("Le score du questionnaire est insuffisant.");
+            }
+        }
+        if ("ENTRETIEN".equals(etape.getCode())
+                && entretienRepository.findByCandidature_Id(candidature.getId()).isEmpty()) {
+            throw new IllegalStateException("L'entretien doit être évalué avant validation.");
+        }
+    }
+
+    private void enregistrerSelection(Candidature candidature, EtapeRecrutement etapeRecrutement) {
+        String nomEtape = switch (etapeRecrutement.getCode()) {
+            case "CV" -> "selection";
+            case "QUESTIONNAIRE" -> "Test";
+            case "ENTRETIEN" -> "Entretien";
+            default -> null;
+        };
+        if (nomEtape == null) {
+            return;
+        }
+        CvCandidat cv = cvCandidatRepository
+                .findByCandidat_IdAndOffreEmploi_Id(candidature.getCandidat().getId(),
+                        candidature.getOffre().getId())
+                .orElseThrow(() -> new IllegalStateException("CV candidat introuvable."));
+        Etape etape = etapeRepository.findByNom(nomEtape)
+                .orElseGet(() -> etapeRepository.save(new Etape(nomEtape)));
+        CandidatsSelec selection = candidatsSelecRepository
+                .findByOffreEmploi_IdAndCvCandidat_IdAndEtape_Nom(
+                        candidature.getOffre().getId(), cv.getId(), nomEtape)
+                .orElseGet(CandidatsSelec::new);
+        selection.setOffreEmploi(candidature.getOffre());
+        selection.setCvCandidat(cv);
+        selection.setEtape(etape);
+        selection.setDateSelection(LocalDateTime.now());
+        selection.setNote(noteEtape(candidature, etapeRecrutement));
+        candidatsSelecRepository.save(selection);
+        recalculerClassement(candidature.getOffre().getId(), nomEtape);
+    }
+
+    private void recalculerClassement(Integer idOffre, String nomEtape) {
+        List<CandidatsSelec> selections = candidatsSelecRepository
+                .findByOffreEmploi_IdOrderByRangAscNoteDesc(idOffre).stream()
+                .filter(selection -> nomEtape.equals(selection.getEtape().getNom()))
+                .sorted((a, b) -> {
+                    BigDecimal noteA = a.getNote() == null ? BigDecimal.ZERO : a.getNote();
+                    BigDecimal noteB = b.getNote() == null ? BigDecimal.ZERO : b.getNote();
+                    return noteB.compareTo(noteA);
+                })
+                .toList();
+        int rang = 1;
+        for (CandidatsSelec selection : selections) {
+            selection.setRang(rang++);
+            candidatsSelecRepository.save(selection);
+        }
+    }
+
+    private BigDecimal noteEtape(Candidature candidature, EtapeRecrutement etape) {
+        if ("QUESTIONNAIRE".equals(etape.getCode())) {
+            return candidature.getScoreQuestionnaire();
+        }
+        if ("ENTRETIEN".equals(etape.getCode())) {
+            return entretienRepository.findByCandidature_Id(candidature.getId())
+                    .map(Entretien::getNoteTotale).orElse(BigDecimal.ZERO);
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private void verifierNote(BigDecimal note) {
+        if (note == null || note.compareTo(BigDecimal.ZERO) < 0
+                || note.compareTo(BigDecimal.valueOf(20)) > 0) {
+            throw new IllegalArgumentException("Chaque note d'entretien doit être comprise entre 0 et 20.");
+        }
     }
 }

@@ -222,6 +222,42 @@ CREATE TABLE cv (
     created_at      TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+-- Version de depot utilisee par le portail pour relier un CV a une offre.
+CREATE TABLE cv_candidat (
+    id               INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_candidat      INT NOT NULL REFERENCES utilisateur(id),
+    id_offre         INT NOT NULL REFERENCES offre_emploi(id),
+    nom              VARCHAR(255) NOT NULL,
+    prenom           VARCHAR(255) NOT NULL,
+    date_naissance   DATE,
+    annee_experience INT NOT NULL DEFAULT 0,
+    email            VARCHAR(255),
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (id_candidat, id_offre)
+);
+
+-- Historique detaille des phases RH, partage avec l'espace candidat.
+CREATE TABLE etape (
+    id  INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nom VARCHAR(255) NOT NULL UNIQUE
+);
+
+INSERT INTO etape (nom) VALUES
+    ('selection'),
+    ('Test'),
+    ('Entretien');
+
+CREATE TABLE candidats_selec (
+    id               INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_offre         INT NOT NULL REFERENCES offre_emploi(id) ON DELETE CASCADE,
+    id_cv_candidat   INT NOT NULL REFERENCES cv_candidat(id) ON DELETE CASCADE,
+    id_etape         INT NOT NULL REFERENCES etape(id),
+    note             NUMERIC(5,2) DEFAULT 0,
+    rang             INT,
+    date_selection   TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (id_offre, id_cv_candidat, id_etape)
+);
+
 CREATE TABLE candidature (
     id                    INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_offre              INT NOT NULL REFERENCES offre_emploi(id),
