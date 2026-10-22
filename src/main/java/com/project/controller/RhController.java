@@ -1,7 +1,13 @@
 package com.project.controller;
 
+import com.project.dto.CandidatureRhVue;
+import com.project.dto.QuestionnaireVue;
+import com.project.entity.Candidature;
+import com.project.entity.Question;
+import com.project.entity.Questionnaire;
 import com.project.entity.Utilisateur;
 import com.project.service.AuthService;
+import com.project.service.CandidatureService;
 import com.project.service.OffreService;
 import com.project.service.RecrutementService;
 import com.project.entity.*;
@@ -35,6 +41,7 @@ public class RhController {
     model.addAttribute("demandesAttente", offreService.demandesEnAttente());
     model.addAttribute("toutesOffres", offreService.toutesOffres());
     model.addAttribute("toutesDemandes", offreService.toutesDemandes());
+    model.addAttribute("candidaturesRh", buildCandidaturesRh());
     return "rh/dashboard";
   }
 

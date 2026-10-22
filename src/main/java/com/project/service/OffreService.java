@@ -1,13 +1,30 @@
 package com.project.service;
 
-import com.project.entity.*;
-import com.project.repository.*;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.project.entity.Decision;
+import com.project.entity.DemandePoste;
+import com.project.entity.Departement;
+import com.project.entity.OffreEmploi;
+import com.project.entity.OffreValidation;
+import com.project.entity.Poste;
+import com.project.entity.Role;
+import com.project.entity.StatutOffre;
+import com.project.entity.Utilisateur;
+import com.project.repository.DecisionRepository;
+import com.project.repository.DemandePosteRepository;
+import com.project.repository.DepartementRepository;
+import com.project.repository.OffreEmploiRepository;
+import com.project.repository.OffreValidationRepository;
+import com.project.repository.PosteRepository;
+import com.project.repository.RoleRepository;
+import com.project.repository.StatutOffreRepository;
 
 @Service
 public class OffreService {
@@ -229,5 +246,9 @@ public class OffreService {
 
   public Optional<OffreEmploi> findOffre(Integer id) {
     return offreRepo.findById(id);
+  }
+
+  public List<OffreEmploi> listerOffresPubliees() {
+      return offreRepo.findByStatut_CodeOrderByCreatedAtDesc("PUBLIEE");
   }
 }

@@ -12,4 +12,5 @@ public interface OffreEmploiRepository extends JpaRepository<OffreEmploi, Intege
   List<OffreEmploi> findByManager_IdOrderByCreatedAtDesc(Integer managerId);
 
   List<OffreEmploi> findAllByOrderByCreatedAtDesc();
+
 }
