@@ -1,5 +1,13 @@
 package com.project.controller;
 
+import com.project.entity.ConditionTravail;
+import com.project.entity.Poste;
+import com.project.service.ConditionTravailService;
+import com.project.service.ContratService;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
+
 import com.project.entity.Utilisateur;
 import com.project.service.AuthService;
 import com.project.service.OffreService;
@@ -14,11 +22,15 @@ import java.math.BigDecimal;
 @RequestMapping("/rh")
 public class RhController {
   private final OffreService offreService;
+  private final ConditionTravailService conditionService;
+  private final ContratService contratService;
   private final AuthService authService;
 
-  public RhController(OffreService o, AuthService a) {
+  public RhController(OffreService o, AuthService a, ConditionTravailService conditionService, ContratService contratService) {
+    this.contratService = contratService;
     this.offreService = o;
     this.authService = a;
+    this.conditionService = conditionService;
   }
 
   @GetMapping("/dashboard")
@@ -80,4 +92,83 @@ public class RhController {
     ra.addFlashAttribute("success", "Demande de poste refusee.");
     return "redirect:/rh/dashboard";
   }
+
+    // Conditions de travail.
+    @InitBinder("condition")
+    public void champs(WebDataBinder binder) {
+        binder.setAllowedFields("salaire", "heuresParSemaine", "horaires", "lieuTravail", "remarque");
+    }
+
+    @GetMapping("/conditions")
+    public String conditions(Model model) {
+        model.addAttribute("postesConditions", conditionService.postes());
+        model.addAttribute("dossiers", conditionService.dossiers(null));
+        return "rh/conditions";
+    }
+
+    @PostMapping("/conditions/poste/{id}")
+    public String definir(@PathVariable Integer id, @Valid @ModelAttribute("condition") ConditionTravail condition,
+            BindingResult erreurs, RedirectAttributes flash, Model model) {
+        if (erreurs.hasErrors()) {
+            model.addAttribute("error", "Verifiez les valeurs du formulaire.");
+            model.addAttribute("posteErreur", id);
+            return conditions(model);
+        }
+        try {
+            Poste poste = new Poste();
+            poste.setId(id);
+            conditionService.definirConditionsTravail(poste, condition);
+            flash.addFlashAttribute("success", "Conditions du poste enregistrees. Les negociations deja ouvertes restent inchangees.");
+            return "redirect:/rh/conditions";
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            model.addAttribute("error", e.getMessage());
+            model.addAttribute("posteErreur", id);
+            return conditions(model);
+        }
+    }
+
+    @PostMapping("/conditions/{id}/decision")
+    public String decider(@PathVariable Integer id, @RequestParam boolean valider, RedirectAttributes flash) {
+        try {
+            conditionService.decider(id, valider);
+            flash.addFlashAttribute("success", valider ? "Changements valides." : "Changements refuses.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/rh/conditions";
+    }
+    @PostMapping("/candidatures/{id}/autoriser-cdi")
+    public String autoriserCdi(@PathVariable Integer id, HttpSession session, RedirectAttributes flash) {
+        try {
+            contratService.autoriserCdi(id, authService.currentUser(session).orElseThrow().getId());
+            flash.addFlashAttribute("success", "CDI autorise pour cette candidature.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/rh/accreditations";
+    }
+
+    @GetMapping("/accreditations")
+    public String accreditations(Model model) {
+        model.addAttribute("dossiers", conditionService.dossiers(null));
+        return "rh/accreditations";
+    }
+
+    @PostMapping("/conditions/candidature/{id}/prolonger")
+    public String prolonger(@PathVariable Integer id, RedirectAttributes flash) {
+        try {
+            conditionService.prolonger(id);
+            flash.addFlashAttribute("success", "Delai de reponse prolonge.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/rh/conditions";
+    }
+
+    @GetMapping("/contrats")
+    public String contrats(Model model) {
+        model.addAttribute("contrats", contratService.tousLesContrats());
+        return "rh/contrats";
+    }
+
 }

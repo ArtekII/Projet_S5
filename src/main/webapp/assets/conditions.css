@@ -1,0 +1,15 @@
+.conditions-page { max-width: 1180px; padding-bottom: 4rem; }
+.conditions-hero { border-left: 4px solid #2563eb; padding: .3rem 0 .3rem 1.2rem; margin: 1.8rem 0; }
+.conditions-hero h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -.04em; }
+.conditions-hero p { color: #64748b; max-width: 750px; margin-bottom: 0; }
+.conditions-step { background: #eaf0fa; border-radius: .75rem; padding: 1rem; height: 100%; }
+.conditions-step strong { display: block; color: #1e3a8a; margin-bottom: .3rem; }
+.conditions-step span { font-size: .875rem; color: #475569; }
+.conditions-page .card { border-color: #e2e8f0; border-radius: .9rem; overflow: hidden; }
+.conditions-page .card-header { background: white; padding: 1.2rem; border-color: #e2e8f0; }
+.conditions-page .card-body { padding: 1.3rem; }
+.conditions-page .form-label { font-size: .875rem; font-weight: 600; }
+.conditions-page .table > :not(caption) > * > * { padding: .8rem; vertical-align: middle; }
+.conditions-page details > summary { cursor: pointer; color: #1d4ed8; font-weight: 600; }
+.conditions-empty { border: 1px dashed #cbd5e1; border-radius: .8rem; padding: 2rem; background: white; color: #64748b; }
+.conditions-kicker { text-transform: uppercase; font-size: .72rem; letter-spacing: .12em; color: #64748b; font-weight: 700; }
