@@ -4,6 +4,9 @@
  <div class="container">
   <a class="navbar-brand" href="${pageContext.request.contextPath}/">Recrutement</a>
   <div class="ms-auto d-flex align-items-center gap-3">
+   <c:if test="${sessionScope.userRole eq 'CANDIDAT'}">
+    <a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/espaceCandidat">Espace candidat</a>
+   </c:if>
    <span class="text-light small">${sessionScope.userEmail}</span>
    <span class="badge bg-light text-dark">${sessionScope.userRole}</span>
    <a href="${pageContext.request.contextPath}/logout" class="btn btn-outline-light btn-sm">Déconnexion</a>
