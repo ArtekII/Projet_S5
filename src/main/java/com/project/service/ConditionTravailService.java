@@ -25,12 +25,12 @@ public class ConditionTravailService {
     private final RoleRepository roleRepository;
     private final DecisionRepository decisionRepository;
     private final ReponseConditionRepository reponseRepository;
-    private final CandidatureRepository candidatureRepository;
+    private final CandidatureJdbcRepository candidatureRepository;
 
     public ConditionTravailService(ConditionTravailRepository conditionTravailRepository,
             PosteRepository posteRepository, RoleRepository roleRepository,
             DecisionRepository decisionRepository, ReponseConditionRepository reponseRepository,
-            CandidatureRepository candidatureRepository, DelaiConditionsService delai) {
+            CandidatureJdbcRepository candidatureRepository, DelaiConditionsService delai) {
         this.delai = delai;
         this.conditionTravailRepository = conditionTravailRepository;
         this.posteRepository = posteRepository;

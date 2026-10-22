@@ -8,6 +8,9 @@
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/contrats">Contrats</a></c:if>
    <c:if test="${sessionScope.userRole == 'CANDIDAT'}"><a class="text-light small" href="${pageContext.request.contextPath}/candidat/conditions">Mes conditions</a></c:if>
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/accreditations">Accr&eacute;ditations</a></c:if>
+   <c:if test="${sessionScope.userRole eq 'CANDIDAT'}">
+    <a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/espaceCandidat">Espace candidat</a>
+   </c:if>
    <span class="text-light small">${sessionScope.userEmail}</span>
    <span class="badge bg-light text-dark">${sessionScope.userRole}</span>
    <a href="${pageContext.request.contextPath}/logout" class="btn btn-outline-light btn-sm">Déconnexion</a>

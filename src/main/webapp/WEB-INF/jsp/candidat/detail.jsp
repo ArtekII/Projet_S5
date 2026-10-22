@@ -25,7 +25,9 @@
      <li>${v.roleValideur.code} - ${v.decision.libelle} le ${f:dateTime(v.decidedAt)}<c:if test="${not empty v.commentaire}"> (${v.commentaire})</c:if></li>
     </c:forEach>
    </ul>
-   <button class="btn btn-primary" disabled>Postuler (à brancher sur candidature)</button>
+   <a class="btn btn-primary" href="${pageContext.request.contextPath}/espaceCandidat?offre=${offre.id}">
+    Postuler
+   </a>
   </div>
  </div>
 </div>

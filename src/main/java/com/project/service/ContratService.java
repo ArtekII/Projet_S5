@@ -14,11 +14,11 @@ public class ContratService {
     private final TypeContratRepository typeContratRepo;
     private final ConditionTravailRepository conditionRepo;
     private final ReponseConditionRepository reponseConditionRepo;
-    private final CandidatureRepository candidatureRepo;
+    private final CandidatureJdbcRepository candidatureRepo;
     private final ConditionTravailService conditionService;
 
     public ContratService(ContratRepository c, TypeContratRepository t, ConditionTravailRepository cond,
-            ReponseConditionRepository r, CandidatureRepository candidatureRepo, ConditionTravailService conditionService, DelaiConditionsService delai) {
+            ReponseConditionRepository r, CandidatureJdbcRepository candidatureRepo, ConditionTravailService conditionService, DelaiConditionsService delai) {
         this.delai = delai;
         this.contratRepo = c;
         this.typeContratRepo = t;
