@@ -49,6 +49,9 @@ public class ContratService {
         // Une seconde soumission renvoie le contrat deja cree.
         Contrat existant = contratRepo.findByIdCandidature(candidatureId).orElse(null);
         if (existant != null) return existant;
+        if (!candidatureRepo.retenueApresEntretien(candidatureId)) {
+            throw new IllegalStateException("La candidature doit etre retenue apres l'entretien");
+        }
         if (!"CONDITIONS".equals(candidature.get("etape")) || !"EN_COURS".equals(candidature.get("statut"))) {
             throw new IllegalStateException("La candidature doit etre a l'etape Conditions et en cours");
         }

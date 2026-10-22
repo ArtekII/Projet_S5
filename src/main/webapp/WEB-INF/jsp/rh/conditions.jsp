@@ -46,11 +46,6 @@
     <div class="card-header"><h3 class="h6 mb-1"><c:out value="${d.intitule}"/></h3><span class="small text-muted"><c:out value="${d.email}"/> · Candidature n° ${d.id}</span></div>
     <div class="card-body">
      <p><strong>Type prévu :</strong> ${d.cdi_autorise ? 'CDI autorisé' : "Contrat d’essai"}</p>
-     <c:if test="${not d.cdi_autorise}">
-      <form method="post" action="${pageContext.request.contextPath}/rh/candidatures/${d.id}/autoriser-cdi" class="mb-3">
-       <button class="btn btn-outline-primary">Autoriser le CDI</button>
-      </form>
-     </c:if>
      <c:if test="${not empty d.actuelle.repondreAvant}">
       <p class="${d.expire ? 'text-danger' : 'text-muted'}">Réponse attendue avant le ${f:dateTime(d.actuelle.repondreAvant)} (heure de Madagascar). ${d.expire ? 'Délai expiré.' : ''}</p>
       <form method="post" action="${pageContext.request.contextPath}/rh/conditions/candidature/${d.id}/prolonger" class="mb-3">

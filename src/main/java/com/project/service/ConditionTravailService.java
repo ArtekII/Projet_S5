@@ -103,6 +103,7 @@ public class ConditionTravailService {
 
     @Transactional
     public List<Map<String, Object>> dossiers(Integer candidatId) {
+        candidatureRepository.ouvrirConditionsApresEntretien(candidatId);
         List<Map<String, Object>> dossiers = candidatureRepository.findDossiersConditions(candidatId);
         for (Map<String, Object> dossier : dossiers) {
             Integer candidatureId = (Integer) dossier.get("id");
@@ -120,7 +121,7 @@ public class ConditionTravailService {
             dossier.put("actuelle", historique.isEmpty() ? modele : historique.get(0));
             dossier.put("initiale", historique.isEmpty() ? modele : historique.get(historique.size() - 1));
         }
-        return dossiers;
+        return dossiers.stream().filter(dossier -> dossier.containsKey("actuelle")).toList();
     }
 
     @Transactional

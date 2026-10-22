@@ -45,7 +45,20 @@ class ConditionTravailWorkflowTest {
         jdbc.execute("create table if not exists candidature (id int primary key, id_offre int, id_candidat int, id_etape int, id_statut int)");
         jdbc.execute("alter table candidature add column if not exists cdi_autorise boolean default false");
         jdbc.execute("alter table candidature add column if not exists id_rh_cdi int");
-        jdbc.update("insert into etape_recrutement values (4, 'CONDITIONS'), (5, 'EMBAUCHE')");
+        jdbc.execute("alter table offre_emploi add column if not exists nb_places int default 1");
+        jdbc.execute("create table if not exists entretien (id_candidature int primary key, note_totale numeric(5,2))");
+        jdbc.execute("""
+                create or replace view v_classement as
+                select t.*, (t.rang <= t.nb_places) as retenu from (
+                    select c.id_offre, c.id as id_candidature, e.note_totale, o.nb_places,
+                        rank() over (partition by c.id_offre order by e.note_totale desc) as rang
+                    from candidature c
+                    join statut_candidature s on s.id = c.id_statut and s.code = 'EN_COURS'
+                    join entretien e on e.id_candidature = c.id
+                    join offre_emploi o on o.id = c.id_offre
+                ) t
+                """);
+        jdbc.update("insert into etape_recrutement values (1, 'DOSSIER'), (3, 'ENTRETIEN'), (4, 'CONDITIONS'), (5, 'EMBAUCHE')");
         jdbc.update("insert into statut_candidature values (1, 'EN_COURS'), (3, 'REFUSE_PAR_CANDIDAT'), (4, 'EMBAUCHE')");
         for (String code : new String[]{"RH", "CANDIDAT"}) {
             Role role = new Role(); role.setCode(code); role.setLibelle(code); roles.saveAndFlush(role);
@@ -61,8 +74,9 @@ class ConditionTravailWorkflowTest {
         }
         poste = new Poste(); poste.setIntitule("Developpeur"); poste = postes.saveAndFlush(poste);
         jdbc.update("insert into utilisateur (id, email) values (100, 'candidat@example.com')");
-        jdbc.update("insert into offre_emploi (id, id_poste) values (100, ?)", poste.getId());
+        jdbc.update("insert into offre_emploi (id, id_poste, nb_places) values (100, ?, 1)", poste.getId());
         jdbc.update("insert into candidature (id, id_offre, id_candidat, id_etape, id_statut) values (100, 100, 100, 4, 1)");
+        jdbc.update("insert into entretien values (100, 50)");
         service.definirConditionsTravail(poste, donnees("1000.00"));
     }
 
@@ -72,6 +86,40 @@ class ConditionTravailWorkflowTest {
         c.setHeuresParSemaine(new BigDecimal("40.0"));
         c.setLieuTravail("Antananarivo");
         return c;
+    }
+
+    @Test
+    void retenuApresEntretienAccedeUniquementASesConditions() {
+        jdbc.update("update candidature set id_etape = 3 where id = 100");
+        assertTrue(service.dossiers(999).isEmpty());
+        assertEquals(3, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
+        assertEquals(1, service.dossiers(100).size());
+        assertEquals(4, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
+    }
+
+    @Test
+    void sansEntretienOuAvantTroisiemeEtapeAucunAcces() {
+        jdbc.update("delete from entretien where id_candidature = 100");
+        assertTrue(service.dossiers(100).isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> service.proposer(100, 100, donnees("1100")));
+        assertThrows(IllegalArgumentException.class, () -> service.refuser(100, 100));
+        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
+        assertThrows(IllegalStateException.class, () -> contrats.accepterConditionsInitiales(100, 100));
+        assertTrue(conditions.findFirstByIdCandidatureOrderByVersionDesc(100).isEmpty());
+        jdbc.update("insert into entretien values (100, 50)");
+        jdbc.update("update candidature set id_etape = 1 where id = 100");
+        assertTrue(service.dossiers(100).isEmpty());
+    }
+
+    @Test
+    void candidatNonRetenuNeVoitPasLesConditionsMemeSiEtapeForcee() {
+        jdbc.update("insert into candidature (id, id_offre, id_candidat, id_etape, id_statut) values (101, 100, 100, 3, 1)");
+        jdbc.update("insert into entretien values (101, 60)");
+        assertEquals(101, service.dossiers(100).get(0).get("id"));
+        assertEquals(1, service.dossiers(100).size());
+        assertThrows(IllegalArgumentException.class, () -> service.refuser(100, 100));
+        assertThrows(IllegalArgumentException.class, () -> service.proposer(100, 100, donnees("1100")));
+        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
     }
 
 

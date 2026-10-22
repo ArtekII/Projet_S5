@@ -67,11 +67,30 @@ public class CandidatureRepository {
                 join etape_recrutement e on e.id = c.id_etape
                 join statut_candidature s on s.id = c.id_statut
                 where e.code = 'CONDITIONS' and s.code = 'EN_COURS'
+                  and exists (select 1 from v_classement v where v.id_candidature = c.id and v.retenu = true)
                   and not exists (select 1 from contrat co where co.id_candidature = c.id)
                 """;
         return candidatId == null
                 ? jdbc.queryForList(sql + " order by c.id desc")
                 : jdbc.queryForList(sql + " and c.id_candidat = ? order by c.id desc", candidatId);
+    }
+
+    // Seuls les candidats retenus au classement de l'entretien passent aux conditions.
+    public void ouvrirConditionsApresEntretien(Integer candidatId) {
+        String sql = """
+                update candidature set id_etape = (select id from etape_recrutement where code = 'CONDITIONS')
+                where id_etape = (select id from etape_recrutement where code = 'ENTRETIEN')
+                  and id_statut = (select id from statut_candidature where code = 'EN_COURS')
+                  and exists (select 1 from v_classement v where v.id_candidature = candidature.id and v.retenu = true)
+                """;
+        if (candidatId == null) jdbc.update(sql);
+        else jdbc.update(sql + " and id_candidat = ?", candidatId);
+    }
+
+    public boolean retenueApresEntretien(Integer candidatureId) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                select exists (select 1 from v_classement where id_candidature = ? and retenu = true)
+                """, Boolean.class, candidatureId));
     }
 
     // Appelee dans une transaction : le verrou protege la premiere proposition individuelle.
@@ -81,6 +100,7 @@ public class CandidatureRepository {
                 join etape_recrutement e on e.id = c.id_etape
                 join statut_candidature s on s.id = c.id_statut
                 where c.id = ? and c.id_candidat = ? and e.code = 'CONDITIONS' and s.code = 'EN_COURS'
+                  and exists (select 1 from v_classement v where v.id_candidature = c.id and v.retenu = true)
                   and not exists (select 1 from contrat co where co.id_candidature = c.id)
                 for update of c
                 """, Integer.class, candidatureId, candidatId).stream().findFirst();

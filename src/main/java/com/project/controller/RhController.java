@@ -145,7 +145,13 @@ public class RhController {
         } catch (IllegalArgumentException | IllegalStateException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/rh/conditions";
+        return "redirect:/rh/accreditations";
+    }
+
+    @GetMapping("/accreditations")
+    public String accreditations(Model model) {
+        model.addAttribute("dossiers", conditionService.dossiers(null));
+        return "rh/accreditations";
     }
 
     @PostMapping("/conditions/candidature/{id}/prolonger")

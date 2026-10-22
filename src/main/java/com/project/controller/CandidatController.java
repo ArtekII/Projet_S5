@@ -61,7 +61,9 @@ public class CandidatController {
 
     @GetMapping("/conditions")
     public String conditions(HttpSession session, Model model) {
-        model.addAttribute("dossiers", conditionService.dossiers(authService.currentUser(session).orElseThrow().getId()));
+        Integer candidatId = authService.currentUser(session).orElseThrow().getId();
+        model.addAttribute("dossiers", conditionService.dossiers(candidatId));
+        model.addAttribute("contrats", contratService.contratsDuCandidat(candidatId));
         model.addAttribute("reponsesConditions", conditionService.reponsesConditions());
         return "candidat/conditions";
     }
@@ -116,8 +118,7 @@ public class CandidatController {
 
     @GetMapping("/contrats")
     public String contrats(HttpSession session, Model model) {
-        model.addAttribute("contrats", contratService.contratsDuCandidat(authService.currentUser(session).orElseThrow().getId()));
-        return "candidat/contrats";
+        return "redirect:/candidat/conditions";
     }
 
     @PostMapping("/conditions/candidature/{id}/accepter")
@@ -125,7 +126,7 @@ public class CandidatController {
         try {
             Contrat contrat = contratService.accepterConditions(id, authService.currentUser(session).orElseThrow().getId());
             flash.addFlashAttribute("success", "Conditions acceptees. Votre contrat " + contrat.getTypeContrat().getCode() + " est cree.");
-            return "redirect:/candidat/contrats";
+            return "redirect:/candidat/conditions";
         } catch (IllegalArgumentException | IllegalStateException e) {
             flash.addFlashAttribute("error", e.getMessage());
             return "redirect:/candidat/conditions";
@@ -136,7 +137,7 @@ public class CandidatController {
         try {
             Contrat contrat = contratService.accepterConditionsInitiales(id, authService.currentUser(session).orElseThrow().getId());
             flash.addFlashAttribute("success", "Conditions RH initiales acceptees. Votre contrat " + contrat.getTypeContrat().getCode() + " est cree.");
-            return "redirect:/candidat/contrats";
+            return "redirect:/candidat/conditions";
         } catch (IllegalArgumentException | IllegalStateException e) {
             flash.addFlashAttribute("error", e.getMessage());
             return "redirect:/candidat/conditions";

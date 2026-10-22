@@ -184,7 +184,7 @@ class ConditionTravailPagesTest {
         TypeContrat type = new TypeContrat(); type.setCode("CDI"); type.setLibelle("Contrat a duree indeterminee");
         contrat.setTypeContrat(type); contrat.setCondition(condition("RH"));
         when(contrats.contratsDuCandidat(1)).thenReturn(List.of(contrat));
-        HttpResponse<String> response = get(client("CANDIDAT"), "/candidat/contrats");
+        HttpResponse<String> response = get(client("CANDIDAT"), "/candidat/conditions");
         assertEquals(200, response.statusCode(), response.body());
         assertTrue(response.body().contains("CDI"));
         assertTrue(response.body().contains("Vous avez maintenant un CDI"));
@@ -221,7 +221,7 @@ class ConditionTravailPagesTest {
         contrat.setDateFin(java.time.LocalDate.of(2027, 1, 22));
         contrat.setStatut("FINALISE");
         when(contrats.contratsDuCandidat(1)).thenReturn(List.of(contrat));
-        HttpResponse<String> consultation = get(client("CANDIDAT"), "/candidat/contrats");
+        HttpResponse<String> consultation = get(client("CANDIDAT"), "/candidat/conditions");
         assertEquals(200, consultation.statusCode(), consultation.body());
         assertTrue(consultation.body().contains("CE"));
         assertFalse(consultation.body().contains("Le RH prépare"));
@@ -239,6 +239,51 @@ class ConditionTravailPagesTest {
         }
         org.mockito.Mockito.verify(contrats, org.mockito.Mockito.never()).autoriserCdi(any(), any());
         org.mockito.Mockito.verify(service, org.mockito.Mockito.never()).prolonger(any());
+    }
+
+    @Test
+    void accreditationSurUnePageRhDediee() throws Exception {
+        Utilisateur rh = new Utilisateur(); rh.setId(1);
+        when(auth.currentUser(any())).thenReturn(Optional.of(rh));
+        when(service.dossiers(null)).thenReturn(List.of(
+                Map.of("id", 3, "intitule", "Developpeur", "email", "alice@example.com", "cdi_autorise", false),
+                Map.of("id", 4, "intitule", "Developpeur", "email", "bob@example.com", "cdi_autorise", true)));
+        HttpClient client = client("RH");
+        HttpResponse<String> page = get(client, "/rh/accreditations");
+        assertEquals(200, page.statusCode(), page.body());
+        assertTrue(page.body().contains("/rh/candidatures/3/autoriser-cdi"));
+        assertFalse(page.body().contains("/rh/candidatures/4/autoriser-cdi"));
+        assertTrue(page.body().contains("Accréditation CDI accordée"));
+        assertFalse(get(client, "/rh/conditions").body().contains("/autoriser-cdi"));
+        HttpResponse<String> action = client.send(HttpRequest.newBuilder(
+                URI.create("http://localhost:" + port + "/rh/candidatures/3/autoriser-cdi"))
+                .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, action.statusCode());
+        assertTrue(action.headers().firstValue("location").orElseThrow().endsWith("/rh/accreditations"));
+        org.mockito.Mockito.verify(contrats).autoriserCdi(3, 1);
+        assertEquals(302, get(client("CANDIDAT"), "/rh/accreditations").statusCode());
+    }
+
+    @Test
+    void acceptationEtAncienLienContratsReviennentAuxConditions() throws Exception {
+        Utilisateur candidat = new Utilisateur(); candidat.setId(1);
+        when(auth.currentUser(any())).thenReturn(Optional.of(candidat));
+        Contrat contrat = new Contrat();
+        TypeContrat type = new TypeContrat(); type.setCode("CE"); contrat.setTypeContrat(type);
+        when(contrats.accepterConditions(3, 1)).thenReturn(contrat);
+        when(contrats.accepterConditionsInitiales(3, 1)).thenReturn(contrat);
+        HttpClient client = client("CANDIDAT");
+        for (String action : List.of("accepter", "accepter-initiales")) {
+            HttpResponse<String> response = client.send(HttpRequest.newBuilder(URI.create(
+                    "http://localhost:" + port + "/candidat/conditions/candidature/3/" + action))
+                    .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(302, response.statusCode());
+            assertTrue(response.headers().firstValue("location").orElseThrow().endsWith("/candidat/conditions"));
+        }
+        HttpResponse<String> ancienLien = get(client, "/candidat/contrats");
+        assertEquals(302, ancienLien.statusCode());
+        assertTrue(ancienLien.headers().firstValue("location").orElseThrow().endsWith("/candidat/conditions"));
+        assertFalse(get(client, "/candidat/conditions").body().contains("href=\"/candidat/contrats\""));
     }
 
 }

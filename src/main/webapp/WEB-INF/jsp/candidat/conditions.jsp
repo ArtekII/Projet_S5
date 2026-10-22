@@ -17,6 +17,7 @@
  <div class="row g-3 mb-4">
   
  </div>
+ <c:if test="${empty dossiers and empty contrats}"><div class="alert alert-info">Aucune condition de travail disponible. Les conditions sont accessibles uniquement aux candidats retenus apr&egrave;s la troisi&egrave;me &eacute;tape (Entretien), pour une candidature encore en cours.</div></c:if>
  <c:forEach var="d" items="${dossiers}">
   <article class="card shadow-sm mb-4">
    <div class="card-header"><h2 class="h5 mb-1"><c:out value="${d.intitule}"/></h2><span class="small text-muted" <c:if test="${apercu}">hidden</c:if>>Candidature n° ${d.id}</span></div>
@@ -84,4 +85,13 @@
    </div>
   </article>
  </c:forEach>
+<c:if test="${not empty contrats}"><section aria-labelledby="contrats-title"><h2 id="contrats-title" class="h4 mb-3">Mes contrats</h2> <c:forEach var="contrat" items="${contrats}">
+  <article class="card shadow-sm mb-3">
+   <div class="card-header d-flex justify-content-between"><h2 class="h5 mb-0"><c:out value="${contrat.typeContrat.libelle}"/></h2><span class="badge bg-success"><c:out value="${contrat.typeContrat.code}"/></span></div>
+   <div class="card-body">
+    <p class="mb-0"><c:choose><c:when test="${contrat.typeContrat.code == 'CDI'}">Vous avez maintenant un CDI grâce à l’accréditation accordée par le RH.</c:when><c:otherwise>Vous avez maintenant un contrat d’essai (CE).</c:otherwise></c:choose></p>
+   </div>
+  </article>
+ </c:forEach>
+</section></c:if>
 <noscript><div class="alert alert-info">Activez JavaScript pour choisir « Autre remarque » et modifier les conditions.</div></noscript></main><script src="${pageContext.request.contextPath}/assets/conditions-candidat.js" defer></script></body></html>
