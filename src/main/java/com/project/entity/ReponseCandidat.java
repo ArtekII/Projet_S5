@@ -90,4 +90,6 @@ public class ReponseCandidat {
     public void setPointsObtenus(BigDecimal pointsObtenus) {
         this.pointsObtenus = pointsObtenus;
     }
+
+
 }

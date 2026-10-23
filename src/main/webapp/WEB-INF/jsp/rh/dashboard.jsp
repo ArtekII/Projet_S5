@@ -140,7 +140,14 @@
        </form>
       </c:if>
       <div class="d-flex gap-2 mt-2">
-       <form method="post" action="${pageContext.request.contextPath}/rh/candidature/${c.candidature.id}/valider"><button class="btn btn-sm btn-success">Valider l'étape → ${c.etapeSuivante}</button></form>
+       <c:choose>
+        <c:when test="${c.codeEtape eq 'QUESTIONNAIRE' and not c.questionnaire.repondu}">
+         <button type="button" class="btn btn-sm btn-success" disabled>En attente des réponses au questionnaire</button>
+        </c:when>
+        <c:otherwise>
+         <form method="post" action="${pageContext.request.contextPath}/rh/candidature/${c.candidature.id}/valider"><button class="btn btn-sm btn-success">Valider l'étape → ${c.etapeSuivante}</button></form>
+        </c:otherwise>
+       </c:choose>
        <form method="post" action="${pageContext.request.contextPath}/rh/candidature/${c.candidature.id}/eliminer"><button class="btn btn-sm btn-outline-danger">Éliminer</button></form>
       </div>
      </div>

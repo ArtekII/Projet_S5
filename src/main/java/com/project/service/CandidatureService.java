@@ -50,6 +50,7 @@ public class CandidatureService {
     private final EtapeRepository etapeRepository;
     private final EntretienRepository entretienRepository;
     private final QuestionnaireRepository questionnaireRepository;
+    private final ReponseCandidatService reponseCandidatService;
 
     public CandidatureService(CandidatureRepository candidatureRepository,
             CvCandidatRepository cvCandidatRepository,
@@ -63,7 +64,8 @@ public class CandidatureService {
             CandidatsSelecRepository candidatsSelecRepository,
             EtapeRepository etapeRepository,
             EntretienRepository entretienRepository,
-            QuestionnaireRepository questionnaireRepository) {
+            QuestionnaireRepository questionnaireRepository,
+            ReponseCandidatService reponseCandidatService) {
         this.candidatureRepository = candidatureRepository;
         this.cvCandidatRepository = cvCandidatRepository;
         this.cvRepository = cvRepository;
@@ -77,6 +79,7 @@ public class CandidatureService {
         this.etapeRepository = etapeRepository;
         this.entretienRepository = entretienRepository;
         this.questionnaireRepository = questionnaireRepository;
+        this.reponseCandidatService = reponseCandidatService;
     }
 
     public List<Candidature> getCandidaturesByCandidatId(Integer userId) {
@@ -187,6 +190,10 @@ public class CandidatureService {
                 .orElseThrow(() -> new IllegalStateException("Candidature introuvable."));
         EtapeRecrutement etapeEnCours = candidature.getEtape();
         String codeSuivant = null;
+        if(!reponseCandidatService.aReponduQuestionnaire(idCandidature) && etapeEnCours != null && "QUESTIONNAIRE".equals(etapeEnCours.getCode())) {
+            throw new IllegalStateException("Le candidat doit d'abord répondre au questionnaire.");
+        }
+
         if (etapeEnCours != null) {
             Optional<EtapeRecrutement> suivante = etapeRecrutementRepository
                     .findFirstByOrdreGreaterThanOrderByOrdreAsc(etapeEnCours.getOrdre());
@@ -197,6 +204,7 @@ public class CandidatureService {
         return validerEtape(idCandidature, codeSuivant, decideur);
     }
 
+    
     /** Le RH elimine la candidature (etape en cours non validee). */
     @Transactional
     public Candidature eliminer(Integer idCandidature, Utilisateur decideur) {

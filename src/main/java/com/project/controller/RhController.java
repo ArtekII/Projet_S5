@@ -17,6 +17,8 @@ import com.project.service.AuthService;
 import com.project.service.CandidatureService;
 import com.project.service.OffreService;
 import com.project.service.QuestionnaireService;
+import com.project.service.ReponseCandidatService;
+
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -39,15 +41,17 @@ public class RhController {
   private final AuthService authService;
   private final CandidatureService candidatureService;
   private final QuestionnaireService questionnaireService;
+  private final ReponseCandidatService responseCandidatService;
 
   public RhController(OffreService o, AuthService a, ConditionTravailService conditionService,
-      ContratService contratService, CandidatureService c, QuestionnaireService q) {
+      ContratService contratService, CandidatureService c, QuestionnaireService q, ReponseCandidatService r) {
     this.contratService = contratService;
     this.offreService = o;
     this.authService = a;
     this.conditionService = conditionService;
     this.candidatureService = c;
     this.questionnaireService = q;
+    this.responseCandidatService = r;
   }
 
   @GetMapping("/dashboard")
@@ -95,7 +99,7 @@ public class RhController {
     List<CandidatureRhVue> vues = new ArrayList<>();
     for (Candidature candidature : candidatures) {
       QuestionnaireVue questionnaireVue = QuestionnaireVue.vide();
-      if (questionnaireDefinition != null || (candidature.getEtape() != null
+      if (questionnaireDefinition != null || (candidature.getEtape() != null && responseCandidatService.aReponduQuestionnaire(candidature.getId())
           && "QUESTIONNAIRE".equals(candidature.getEtape().getCode()))) {
         Questionnaire q = questionnaireDefinition != null ? questionnaireDefinition
             : questionnaireService
@@ -118,6 +122,13 @@ public class RhController {
       RedirectAttributes ra) {
     Utilisateur u = authService.currentUser(session).orElseThrow();
     try {
+      Candidature candidature = candidatureService.findCandidature(id)
+          .orElseThrow(() -> new IllegalStateException("Candidature introuvable."));
+      if (candidature.getEtape() != null
+          && "QUESTIONNAIRE".equals(candidature.getEtape().getCode())
+          && questionnaireService.getReponses(id).isEmpty()) {
+        throw new IllegalStateException("Le candidat doit d'abord répondre au questionnaire.");
+      }
       candidatureService.validerEtapeSuivante(id, u);
       ra.addFlashAttribute("success", "Etape validee : la candidature passe a l'etape suivante.");
     } catch (Exception e) {
