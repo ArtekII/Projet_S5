@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service 
 public class ContratService {
     private final DelaiConditionsService delai;
+    private final EmployeService employes;
     private final ContratRepository contratRepo;
     private final TypeContratRepository typeContratRepo;
     private final ConditionTravailRepository conditionRepo;
@@ -18,7 +19,8 @@ public class ContratService {
     private final ConditionTravailService conditionService;
 
     public ContratService(ContratRepository c, TypeContratRepository t, ConditionTravailRepository cond,
-            ReponseConditionRepository r, CandidatureJdbcRepository candidatureRepo, ConditionTravailService conditionService, DelaiConditionsService delai) {
+            ReponseConditionRepository r, CandidatureJdbcRepository candidatureRepo, ConditionTravailService conditionService, DelaiConditionsService delai, EmployeService employes) {
+        this.employes = employes;
         this.delai = delai;
         this.contratRepo = c;
         this.typeContratRepo = t;
@@ -34,27 +36,26 @@ public class ContratService {
     }
 
     @Transactional
-    public Contrat accepterConditions(Integer candidatureId, Integer candidatId) {
+    public ConditionTravail accepterConditions(Integer candidatureId, Integer candidatId) {
         return accepter(candidatureId, candidatId, false);
     }
 
     @Transactional
-    public Contrat accepterConditionsInitiales(Integer candidatureId, Integer candidatId) {
+    public ConditionTravail accepterConditionsInitiales(Integer candidatureId, Integer candidatId) {
         return accepter(candidatureId, candidatId, true);
     }
 
-    private Contrat accepter(Integer candidatureId, Integer candidatId, boolean initiales) {
+    private ConditionTravail accepter(Integer candidatureId, Integer candidatId, boolean initiales) {
         Map<String, Object> candidature = candidatureRepo.findPourContratForUpdate(candidatureId, candidatId)
                 .orElseThrow(() -> new IllegalArgumentException("Candidature inaccessible"));
-        // Une seconde soumission renvoie le contrat deja cree.
         Contrat existant = contratRepo.findByIdCandidature(candidatureId).orElse(null);
-        if (existant != null) return existant;
+        if (existant != null) return existant.getCondition();
+        verifierEnCours(candidature);
         if (!candidatureRepo.retenueApresEntretien(candidatureId)) {
             throw new IllegalStateException("La candidature doit etre retenue apres l'entretien");
         }
-        if (!"CONDITIONS".equals(candidature.get("etape")) || !"EN_COURS".equals(candidature.get("statut"))) {
-            throw new IllegalStateException("La candidature doit etre a l'etape Conditions et en cours");
-        }
+        ConditionTravail derniere = conditionRepo.findFirstByIdCandidatureOrderByVersionDesc(candidatureId).orElse(null);
+        if (acceptee(derniere)) return derniere;
         ConditionTravail condition = initiales
                 ? conditionService.reprendreConditionsInitiales(candidatureId)
                 : conditionService.conditionsPourCandidature(candidatureId, (Integer) candidature.get("posteid"));
@@ -65,18 +66,63 @@ public class ContratService {
             throw new IllegalStateException("Seules la proposition RH ou des modifications validees peuvent etre acceptees");
         }
         delai.verifier(condition);
-        String code = Boolean.TRUE.equals(candidature.get("cdi_autorise")) ? "CDI" : "CE";
-        TypeContrat type = typeContratRepo.findByCode(code)
-                .orElseThrow(() -> new IllegalStateException("Type de contrat " + code + " introuvable"));
         condition.setReponse(reponseConditionRepo.findByCode("OUI")
                 .orElseThrow(() -> new IllegalStateException("Reponse OUI introuvable")));
-        conditionRepo.save(condition);
+        return conditionRepo.save(condition);
+    }
+
+    private boolean acceptee(ConditionTravail condition) {
+        return condition != null && condition.getReponse() != null && "OUI".equals(condition.getReponse().getCode());
+    }
+
+    @Transactional
+    public Map<String, Object> dossierPourConfirmation(Integer candidatureId, Integer candidatId) {
+        Map<String, Object> dossier = candidatureRepo.findPourContratForUpdate(candidatureId, candidatId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidature inaccessible"));
+        verifierEnCours(dossier);
+        ConditionTravail condition = conditionRepo.findFirstByIdCandidatureOrderByVersionDesc(candidatureId).orElse(null);
+        if (!acceptee(condition)) throw new IllegalStateException("Acceptez les conditions avant de confirmer le contrat.");
+        dossier.put("id", candidatureId);
+        dossier.put("condition", condition);
+        return dossier;
+    }
+
+    @Transactional
+    public Contrat confirmerContrat(Integer candidatureId, Integer candidatId, String choix) {
+        Map<String, Object> candidature = candidatureRepo.findPourContratForUpdate(candidatureId, candidatId)
+                .orElseThrow(() -> new IllegalArgumentException("Candidature inaccessible"));
+        Contrat existant = contratRepo.findByIdCandidature(candidatureId).orElse(null);
+        if (existant != null) {
+            employes.assurerPourContrat(existant);
+            return existant;
+        }
+        verifierEnCours(candidature);
+        if (!candidatureRepo.retenueApresEntretien(candidatureId)) {
+            throw new IllegalStateException("La candidature doit etre retenue apres l'entretien");
+        }
+        ConditionTravail condition = conditionRepo.findFirstByIdCandidatureOrderByVersionDesc(candidatureId).orElse(null);
+        if (!acceptee(condition)) throw new IllegalStateException("Acceptez les conditions avant de confirmer le contrat.");
+        boolean accredite = Boolean.TRUE.equals(candidature.get("cdi_autorise"));
+        if (accredite && (choix == null || choix.isBlank())) {
+            throw new IllegalArgumentException("Choisissez votre type de contrat : CE ou CDI.");
+        }
+        String code = choix == null || choix.isBlank() ? "CE" : choix;
+        if (!("CE".equals(code) || "CDI".equals(code))) {
+            throw new IllegalArgumentException("Type de contrat invalide.");
+        }
+        if ("CDI".equals(code) && !accredite) {
+            throw new IllegalArgumentException("Le CDI necessite une accreditation RH.");
+        }
+        TypeContrat type = typeContratRepo.findByCode(code)
+                .orElseThrow(() -> new IllegalStateException("Type de contrat " + code + " introuvable"));
+
         Contrat contrat = new Contrat();
         contrat.setIdCandidature(candidatureId);
         contrat.setCondition(condition);
         contrat.setTypeContrat(type);
         contrat.setStatut("FINALISE");
         contrat = contratRepo.save(contrat);
+        employes.assurerPourContrat(contrat);
         candidatureRepo.embaucher(candidatureId);
         return contrat;
     }

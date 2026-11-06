@@ -125,24 +125,48 @@ public class CandidatController {
     @PostMapping("/conditions/candidature/{id}/accepter")
     public String accepter(@PathVariable Integer id, HttpSession session, RedirectAttributes flash) {
         try {
-            Contrat contrat = contratService.accepterConditions(id, authService.currentUser(session).orElseThrow().getId());
-            flash.addFlashAttribute("success", "Conditions acceptees. Votre contrat " + contrat.getTypeContrat().getCode() + " est cree.");
-            return "redirect:/candidat/conditions";
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            flash.addFlashAttribute("error", e.getMessage());
-            return "redirect:/candidat/conditions";
-        }
-    }
-    @PostMapping("/conditions/candidature/{id}/accepter-initiales")
-    public String accepterInitiales(@PathVariable Integer id, HttpSession session, RedirectAttributes flash) {
-        try {
-            Contrat contrat = contratService.accepterConditionsInitiales(id, authService.currentUser(session).orElseThrow().getId());
-            flash.addFlashAttribute("success", "Conditions RH initiales acceptees. Votre contrat " + contrat.getTypeContrat().getCode() + " est cree.");
-            return "redirect:/candidat/conditions";
+            contratService.accepterConditions(id, authService.currentUser(session).orElseThrow().getId());
+            flash.addFlashAttribute("success", "Conditions acceptees. Confirmez maintenant votre contrat.");
+            return "redirect:/candidat/contrats/candidature/" + id;
         } catch (IllegalArgumentException | IllegalStateException e) {
             flash.addFlashAttribute("error", e.getMessage());
             return "redirect:/candidat/conditions";
         }
     }
 
+    @PostMapping("/conditions/candidature/{id}/accepter-initiales")
+    public String accepterInitiales(@PathVariable Integer id, HttpSession session, RedirectAttributes flash) {
+        try {
+            contratService.accepterConditionsInitiales(id, authService.currentUser(session).orElseThrow().getId());
+            flash.addFlashAttribute("success", "Conditions RH initiales acceptees. Confirmez maintenant votre contrat.");
+            return "redirect:/candidat/contrats/candidature/" + id;
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            return "redirect:/candidat/conditions";
+        }
+    }
+
+    @GetMapping("/contrats/candidature/{id}")
+    public String confirmationContrat(@PathVariable Integer id, HttpSession session, Model model, RedirectAttributes flash) {
+        try {
+            model.addAttribute("d", contratService.dossierPourConfirmation(id, authService.currentUser(session).orElseThrow().getId()));
+            return "candidat/confirmation-contrat";
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            return "redirect:/candidat/conditions";
+        }
+    }
+
+    @PostMapping("/contrats/candidature/{id}/confirmer")
+    public String confirmerContrat(@PathVariable Integer id, @RequestParam(required = false) String typeContrat,
+            HttpSession session, RedirectAttributes flash) {
+        try {
+            Contrat contrat = contratService.confirmerContrat(id, authService.currentUser(session).orElseThrow().getId(), typeContrat);
+            flash.addFlashAttribute("success", "Contrat " + contrat.getTypeContrat().getCode() + " confirme. Votre embauche est enregistree.");
+            return "redirect:/candidat/conditions";
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            return "redirect:/candidat/contrats/candidature/" + id;
+        }
+    }
 }

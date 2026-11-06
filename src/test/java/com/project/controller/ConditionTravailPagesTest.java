@@ -190,6 +190,33 @@ class ConditionTravailPagesTest {
         assertTrue(response.body().contains("Vous avez maintenant un CDI"));
         assertFalse(response.body().contains("<script>alert(1)</script>"));
     }
+
+    @Test
+    void choixDuContratApparaitUniquementApresAcceptation() throws Exception {
+        Utilisateur candidat = new Utilisateur(); candidat.setId(1);
+        when(auth.currentUser(any())).thenReturn(Optional.of(candidat));
+        ConditionTravail initiale = condition("RH");
+        when(service.dossiers(1)).thenReturn(List.of(Map.of("id", 3, "intitule", "Poste",
+                "actuelle", initiale, "initiale", initiale, "historique", List.of(initiale), "cdi_autorise", true)));
+        HttpClient client = client("CANDIDAT");
+        assertFalse(get(client, "/candidat/conditions").body().contains("select name=\"typeContrat\""));
+        ReponseCondition oui = new ReponseCondition(); oui.setCode("OUI"); initiale.setReponse(oui);
+        when(contrats.dossierPourConfirmation(3, 1)).thenReturn(Map.of("id", 3, "condition", initiale, "cdi_autorise", true));
+        String page = get(client, "/candidat/contrats/candidature/3").body();
+        assertTrue(page.contains("select name=\"typeContrat\""));
+        assertTrue(page.contains("option value=\"CE\""));
+        assertTrue(page.contains("option value=\"CDI\""));
+        assertFalse(page.contains("<script>alert(1)</script>"));
+        Contrat contrat = new Contrat();
+        TypeContrat type = new TypeContrat(); type.setCode("CE"); contrat.setTypeContrat(type);
+        when(contrats.confirmerContrat(3, 1, "CE")).thenReturn(contrat);
+        var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port
+                + "/candidat/contrats/candidature/3/confirmer"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("typeContrat=CE")).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(302, response.statusCode());
+        org.mockito.Mockito.verify(contrats).confirmerContrat(3, 1, "CE");
+    }
     @Test
     void afficheLeDelaiExpireSansFormulaireDeReponse() throws Exception {
         Utilisateur candidat = new Utilisateur(); candidat.setId(1);
@@ -270,15 +297,15 @@ class ConditionTravailPagesTest {
         when(auth.currentUser(any())).thenReturn(Optional.of(candidat));
         Contrat contrat = new Contrat();
         TypeContrat type = new TypeContrat(); type.setCode("CE"); contrat.setTypeContrat(type);
-        when(contrats.accepterConditions(3, 1)).thenReturn(contrat);
-        when(contrats.accepterConditionsInitiales(3, 1)).thenReturn(contrat);
+        when(contrats.accepterConditions(3, 1)).thenReturn(condition("RH"));
+        when(contrats.accepterConditionsInitiales(3, 1)).thenReturn(condition("RH"));
         HttpClient client = client("CANDIDAT");
         for (String action : List.of("accepter", "accepter-initiales")) {
             HttpResponse<String> response = client.send(HttpRequest.newBuilder(URI.create(
                     "http://localhost:" + port + "/candidat/conditions/candidature/3/" + action))
                     .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
             assertEquals(302, response.statusCode());
-            assertTrue(response.headers().firstValue("location").orElseThrow().endsWith("/candidat/conditions"));
+            assertTrue(response.headers().firstValue("location").orElseThrow().endsWith("/candidat/contrats/candidature/3"));
         }
         HttpResponse<String> ancienLien = get(client, "/candidat/contrats");
         assertEquals(302, ancienLien.statusCode());

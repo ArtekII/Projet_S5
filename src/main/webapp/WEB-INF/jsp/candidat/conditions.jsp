@@ -25,7 +25,7 @@
     <c:choose>
      <c:when test="${empty d.actuelle}"><div class="alert alert-info mb-0">Le RH prépare les conditions de ce poste. Revenez sur cette page pour les consulter.</div></c:when>
      <c:otherwise>
-      <c:if test="${not empty d.actuelle.repondreAvant}">
+      <c:if test="${not empty d.actuelle.repondreAvant and d.actuelle.reponse.code != 'OUI'}">
        <p class="small">Réponse attendue avant le <strong>${f:dateTime(d.actuelle.repondreAvant)}</strong> (heure de Madagascar).</p>
       </c:if>
       <c:choose>
@@ -41,6 +41,10 @@
        </div>
        <div class="col-lg-7">
         <c:choose>
+         <c:when test="${d.actuelle.reponse.code == 'OUI'}">
+          <div class="alert alert-success">Conditions acceptées. Votre contrat reste à confirmer.</div>
+          <a class="btn btn-primary" href="${pageContext.request.contextPath}/candidat/contrats/candidature/${d.id}">Choisir et confirmer mon contrat</a>
+         </c:when>
          <c:when test="${d.expire}"><div class="alert alert-danger">Le délai de réponse est expiré. Contactez le RH pour demander une prolongation.</div></c:when>
          <c:when test="${d.actuelle.roleProposant.code == 'RH' and empty d.actuelle.reponse}">
           <h3 class="h6 mb-2">Votre réponse</h3>
@@ -89,7 +93,7 @@
   <article class="card shadow-sm mb-3">
    <div class="card-header d-flex justify-content-between"><h2 class="h5 mb-0"><c:out value="${contrat.typeContrat.libelle}"/></h2><span class="badge bg-success"><c:out value="${contrat.typeContrat.code}"/></span></div>
    <div class="card-body">
-    <p class="mb-0"><c:choose><c:when test="${contrat.typeContrat.code == 'CDI'}">Vous avez maintenant un CDI grâce à l’accréditation accordée par le RH.</c:when><c:otherwise>Vous avez maintenant un contrat d’essai (CE).</c:otherwise></c:choose></p>
+    <p class="mb-0"><c:choose><c:when test="${contrat.typeContrat.code == 'CDI'}">Vous avez maintenant un CDI.</c:when><c:otherwise>Vous avez maintenant un contrat d’essai (CE).</c:otherwise></c:choose></p>
    </div>
   </article>
  </c:forEach>

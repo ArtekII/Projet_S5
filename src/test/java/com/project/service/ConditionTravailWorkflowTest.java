@@ -40,13 +40,18 @@ class ConditionTravailWorkflowTest {
         org.mockito.Mockito.when(clock.getZone()).thenReturn(java.time.ZoneId.of("Indian/Antananarivo"));
         org.mockito.Mockito.when(clock.instant()).thenReturn(java.time.Instant.parse("2026-10-21T09:00:00Z"));
         // Les tables non encore mappees en JPA sont celles consultees dans 26.sql.
+        jdbc.execute("drop table if exists candidature cascade");
+        jdbc.execute("drop table if exists etape_recrutement cascade");
+        jdbc.execute("drop table if exists statut_candidature cascade");
         jdbc.execute("create table if not exists etape_recrutement (id int primary key, code varchar(20))");
         jdbc.execute("create table if not exists statut_candidature (id int primary key, code varchar(30))");
         jdbc.execute("create table if not exists candidature (id int primary key, id_offre int, id_candidat int, id_etape int, id_statut int)");
         jdbc.execute("alter table candidature add column if not exists cdi_autorise boolean default false");
         jdbc.execute("alter table candidature add column if not exists id_rh_cdi int");
         jdbc.execute("alter table offre_emploi add column if not exists nb_places int default 1");
-        jdbc.execute("create table if not exists entretien (id_candidature int primary key, note_totale numeric(5,2))");
+        // Cette fixture JDBC fournit elle-meme la note totale utilisee par la vue.
+        jdbc.execute("drop table if exists entretien cascade");
+        jdbc.execute("create table entretien (id_candidature int primary key, note_totale numeric(5,2))");
         jdbc.execute("""
                 create or replace view v_classement as
                 select t.*, (t.rang <= t.nb_places) as retenu from (
@@ -77,9 +82,22 @@ class ConditionTravailWorkflowTest {
         jdbc.update("insert into offre_emploi (id, id_poste, nb_places) values (100, ?, 1)", poste.getId());
         jdbc.update("insert into candidature (id, id_offre, id_candidat, id_etape, id_statut) values (100, 100, 100, 4, 1)");
         jdbc.update("insert into entretien values (100, 50)");
+        jdbc.update("insert into cv_candidat (id_candidat, id_offre, nom, prenom, annee_experience, created_at) values (100, 100, 'Test', 'Candidat', 0, current_timestamp)");
         service.definirConditionsTravail(poste, donnees("1000.00"));
     }
 
+    // Les anciens scenarios couvrent toujours le parcours complet, en deux appels.
+    private Contrat accepterEtConfirmer(Integer candidatureId, Integer candidatId) {
+        return accepterEtConfirmer(candidatureId, candidatId, null);
+    }
+    private Contrat accepterEtConfirmer(Integer candidatureId, Integer candidatId, String type) {
+        contrats.accepterConditions(candidatureId, candidatId);
+        return contrats.confirmerContrat(candidatureId, candidatId, type);
+    }
+    private Contrat accepterInitialesEtConfirmer(Integer candidatureId, Integer candidatId) {
+        contrats.accepterConditionsInitiales(candidatureId, candidatId);
+        return contrats.confirmerContrat(candidatureId, candidatId, null);
+    }
     private ConditionTravail donnees(String salaire) {
         ConditionTravail c = new ConditionTravail();
         c.setSalaire(new BigDecimal(salaire));
@@ -103,8 +121,8 @@ class ConditionTravailWorkflowTest {
         assertTrue(service.dossiers(100).isEmpty());
         assertThrows(IllegalArgumentException.class, () -> service.proposer(100, 100, donnees("1100")));
         assertThrows(IllegalArgumentException.class, () -> service.refuser(100, 100));
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditionsInitiales(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterEtConfirmer(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterInitialesEtConfirmer(100, 100));
         assertTrue(conditions.findFirstByIdCandidatureOrderByVersionDesc(100).isEmpty());
         jdbc.update("insert into entretien values (100, 50)");
         jdbc.update("update candidature set id_etape = 1 where id = 100");
@@ -119,7 +137,7 @@ class ConditionTravailWorkflowTest {
         assertEquals(1, service.dossiers(100).size());
         assertThrows(IllegalArgumentException.class, () -> service.refuser(100, 100));
         assertThrows(IllegalArgumentException.class, () -> service.proposer(100, 100, donnees("1100")));
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterEtConfirmer(100, 100));
     }
 
 
@@ -144,21 +162,21 @@ class ConditionTravailWorkflowTest {
     void autorisationCdiEstAttribueeEtAuditeeAvantLeContrat() {
         contrats.autoriserCdi(100, 42);
         assertEquals(42, jdbc.queryForObject("select id_rh_cdi from candidature where id = 100", Integer.class));
-        assertEquals("CDI", contrats.accepterConditions(100, 100).getTypeContrat().getCode());
+        assertEquals("CDI", accepterEtConfirmer(100, 100, "CDI").getTypeContrat().getCode());
         assertThrows(IllegalStateException.class, () -> contrats.autoriserCdi(100, 43));
         assertEquals(42, jdbc.queryForObject("select id_rh_cdi from candidature where id = 100", Integer.class));
     }
 
     @Test
     void acceptationAttribueLeContratEtConfirmeImmediatementLEmbauche() {
-        Contrat contrat = contrats.accepterConditions(100, 100);
+        Contrat contrat = accepterEtConfirmer(100, 100);
         assertEquals("CE", contrat.getTypeContrat().getCode());
         assertEquals("FINALISE", contrat.getStatut());
         assertNull(contrat.getDateDebut());
         assertNull(contrat.getDateFin());
         assertEquals(5, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
         assertEquals(4, jdbc.queryForObject("select id_statut from candidature where id = 100", Integer.class));
-        assertEquals(contrat.getId(), contrats.accepterConditions(100, 100).getId());
+        assertEquals(contrat.getId(), accepterEtConfirmer(100, 100).getId());
         assertEquals(1, contratRepository.count());
     }
 
@@ -166,7 +184,7 @@ class ConditionTravailWorkflowTest {
     void expirationBloqueToutesLesReponsesDuCandidat() {
         expirer();
         assertEquals(true, service.dossiers(100).get(0).get("expire"));
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterEtConfirmer(100, 100));
         assertThrows(IllegalStateException.class, () -> service.refuser(100, 100));
         assertThrows(IllegalStateException.class, () -> service.proposer(100, 100, donnees("1200.00")));
         assertEquals(0, contratRepository.count());
@@ -179,7 +197,7 @@ class ConditionTravailWorkflowTest {
         assertEquals(java.time.LocalDateTime.of(2026, 10, 28, 12, 0), condition.getRepondreAvant());
         service.prolonger(100);
         assertEquals(java.time.LocalDateTime.of(2026, 11, 4, 12, 0), condition.getRepondreAvant());
-        assertEquals("CE", contrats.accepterConditions(100, 100).getTypeContrat().getCode());
+        assertEquals("CE", accepterEtConfirmer(100, 100).getTypeContrat().getCode());
     }
 
     @Test
@@ -197,7 +215,7 @@ class ConditionTravailWorkflowTest {
         ConditionTravail actuelle = contrePropositionRefusee();
         actuelle.setRepondreAvant(java.time.LocalDateTime.of(2026, 10, 21, 12, 0));
         conditions.saveAndFlush(actuelle);
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditionsInitiales(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterInitialesEtConfirmer(100, 100));
         assertEquals(2, conditions.findByIdCandidatureOrderByVersionDesc(100).size());
     }
 
@@ -218,20 +236,20 @@ class ConditionTravailWorkflowTest {
         assertEquals("REFUSEE", refusee.getDecisionRh().getCode());
         assertNull(refusee.getReponse());
         service.decider(nouvelle.getId(), true);
-        assertEquals(new BigDecimal("1100.00"), contrats.accepterConditions(100, 100).getCondition().getSalaire());
+        assertEquals(new BigDecimal("1100.00"), accepterEtConfirmer(100, 100).getCondition().getSalaire());
     }
 
     @Test
     void accepteLesConditionsOriginalesMemeSiLeModeleDuPosteChange() {
         ConditionTravail refusee = contrePropositionRefusee();
         service.definirConditionsTravail(poste, donnees("2000.00"));
-        Contrat contrat = contrats.accepterConditionsInitiales(100, 100);
+        Contrat contrat = accepterInitialesEtConfirmer(100, 100);
         assertEquals(new BigDecimal("1000.00"), contrat.getCondition().getSalaire());
         assertEquals(3, contrat.getCondition().getVersion());
         assertEquals("OUI", contrat.getCondition().getReponse().getCode());
         assertEquals("REFUSEE", refusee.getDecisionRh().getCode());
         assertEquals("AUTRE", conditions.findByIdCandidatureOrderByVersionDesc(100).get(2).getReponse().getCode());
-        assertEquals(contrat.getId(), contrats.accepterConditionsInitiales(100, 100).getId());
+        assertEquals(contrat.getId(), accepterInitialesEtConfirmer(100, 100).getId());
     }
 
     @Test
@@ -245,21 +263,21 @@ class ConditionTravailWorkflowTest {
     @Test
     void nePeutAccepterInitialesPourUnAutreCandidat() {
         contrePropositionRefusee();
-        assertThrows(IllegalArgumentException.class, () -> contrats.accepterConditionsInitiales(100, 200));
+        assertThrows(IllegalArgumentException.class, () -> accepterInitialesEtConfirmer(100, 200));
         assertEquals(2, conditions.findByIdCandidatureOrderByVersionDesc(100).size());
     }
 
     @Test
     void nePeutAccepterInitialesPendantValidationRh() {
         service.proposer(100, 100, donnees("1200.00"));
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditionsInitiales(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterInitialesEtConfirmer(100, 100));
         assertEquals(0, contratRepository.count());
     }
 
     @Test
     void nePeutAccepterDirectementUneContrePropositionRefusee() {
         contrePropositionRefusee();
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterEtConfirmer(100, 100));
         assertEquals(0, contratRepository.count());
     }
 
@@ -273,7 +291,7 @@ class ConditionTravailWorkflowTest {
         assertEquals(3, jdbc.queryForObject("select id_statut from candidature where id = 100", Integer.class));
         assertTrue(service.dossiers(100).isEmpty());
         assertEquals(0, contratRepository.count());
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterEtConfirmer(100, 100));
     }
 
     @Test
@@ -285,7 +303,7 @@ class ConditionTravailWorkflowTest {
 
     @Test
     void refusInterditApresCreationDuContrat() {
-        contrats.accepterConditions(100, 100);
+        accepterEtConfirmer(100, 100);
         assertThrows(IllegalArgumentException.class, () -> service.refuser(100, 100));
     }
 
@@ -329,14 +347,14 @@ class ConditionTravailWorkflowTest {
 
     @Test
     void accepterCreeUnCeEtPasseAuContratSansDoublon() {
-        Contrat contrat = contrats.accepterConditions(100, 100);
+        Contrat contrat = accepterEtConfirmer(100, 100);
         assertEquals("CE", contrat.getTypeContrat().getCode());
         assertEquals("OUI", contrat.getCondition().getReponse().getCode());
         assertEquals(100, contrat.getCondition().getIdCandidature());
         assertEquals("FINALISE", contrat.getStatut());
         assertEquals(5, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
         assertEquals(4, jdbc.queryForObject("select id_statut from candidature where id = 100", Integer.class));
-        assertEquals(contrat.getId(), contrats.accepterConditions(100, 100).getId());
+        assertEquals(contrat.getId(), accepterEtConfirmer(100, 100).getId());
         assertEquals(1, contratRepository.count());
         assertTrue(contrats.contratsDuCandidat(200).isEmpty());
         assertEquals(1, contrats.contratsDuCandidat(100).size());
@@ -345,19 +363,88 @@ class ConditionTravailWorkflowTest {
     @Test
     void accreditationRhDonneUnCdi() {
         jdbc.update("update candidature set cdi_autorise = true where id = 100");
-        assertEquals("CDI", contrats.accepterConditions(100, 100).getTypeContrat().getCode());
+        assertEquals("CDI", accepterEtConfirmer(100, 100, "CDI").getTypeContrat().getCode());
+    }
+
+    @Test
+    void acceptationDesConditionsNeCreeNiContratNiEmploye() {
+        contrats.autoriserCdi(100, 42);
+        ConditionTravail acceptee = contrats.accepterConditions(100, 100);
+        assertEquals("OUI", acceptee.getReponse().getCode());
+        assertEquals(0, contratRepository.count());
+        assertEquals(0, jdbc.queryForObject("select count(*) from employe", Integer.class));
+        assertEquals(4, jdbc.queryForObject("select id_etape from candidature where id = 100", Integer.class));
+        assertEquals(1, jdbc.queryForObject("select id_statut from candidature where id = 100", Integer.class));
+        assertEquals(acceptee.getId(), contrats.accepterConditions(100, 100).getId());
+        assertEquals(acceptee.getId(), ((ConditionTravail) contrats.dossierPourConfirmation(100, 100).get("condition")).getId());
+        // Le delai porte sur l'acceptation des conditions, deja effectuee.
+        acceptee.setRepondreAvant(java.time.LocalDateTime.of(2020, 1, 1, 0, 0));
+        conditions.saveAndFlush(acceptee);
+        Contrat contrat = contrats.confirmerContrat(100, 100, "CE");
+        assertEquals("CE", contrat.getTypeContrat().getCode());
+        assertEquals(1, jdbc.queryForObject("select count(*) from employe", Integer.class));
+    }
+
+    @Test
+    void contratInaccessibleAvantAcceptationOuPourUnAutreCandidat() {
+        assertThrows(IllegalStateException.class, () -> contrats.confirmerContrat(100, 100, "CE"));
+        assertThrows(IllegalStateException.class, () -> contrats.dossierPourConfirmation(100, 100));
+        assertThrows(IllegalArgumentException.class, () -> contrats.confirmerContrat(100, 200, "CE"));
+        assertThrows(IllegalArgumentException.class, () -> contrats.dossierPourConfirmation(100, 200));
+        assertEquals(0, contratRepository.count());
+    }
+
+    @Test
+    void conditionsAccepteesNePeuventPlusEtreRenegocieesOuRefusees() {
+        contrats.accepterConditions(100, 100);
+        assertThrows(IllegalStateException.class, () -> service.proposer(100, 100, donnees("1200")));
+        assertThrows(IllegalStateException.class, () -> service.refuser(100, 100));
+    }
+
+    @Test
+    void accreditationPermetDeChoisirUnCeEtCreeUnSeulEmploye() {
+        contrats.autoriserCdi(100, 42);
+        Contrat contrat = accepterEtConfirmer(100, 100, "CE");
+        assertEquals("CE", contrat.getTypeContrat().getCode());
+        accepterEtConfirmer(100, 100, "CE");
+        assertEquals(1, jdbc.queryForObject("select count(*) from employe where id_utilisateur = 100", Integer.class));
+        assertEquals(contrat.getId(), jdbc.queryForObject("select id_contrat_actuel from employe where id_utilisateur = 100", Integer.class));
+    }
+
+    @Test
+    void accreditationExigeUnChoixExplicite() {
+        contrats.autoriserCdi(100, 42);
+        assertThrows(IllegalArgumentException.class, () -> accepterEtConfirmer(100, 100));
+        assertEquals(0, contratRepository.count());
+        assertEquals(0, jdbc.queryForObject("select count(*) from employe", Integer.class));
+    }
+
+    @Test
+    void refuseCdiSansAccreditationEtTypeInconnu() {
+        assertThrows(IllegalArgumentException.class, () -> accepterEtConfirmer(100, 100, "CDI"));
+        assertThrows(IllegalArgumentException.class, () -> accepterEtConfirmer(100, 100, "CDD"));
+        assertEquals(0, contratRepository.count());
+    }
+
+    @Test
+    void rattrapeUnEmployeManquantSansChangerLeContrat() {
+        Contrat contrat = accepterEtConfirmer(100, 100);
+        jdbc.update("delete from employe where id_utilisateur = 100");
+        accepterEtConfirmer(100, 100);
+        assertEquals(contrat.getId(), jdbc.queryForObject("select id_contrat_actuel from employe where id_utilisateur = 100", Integer.class));
+        assertEquals("CE", contrat.getTypeContrat().getCode());
     }
 
     @Test
     void nePeutAccepterLaCandidatureDunAutre() {
-        assertThrows(IllegalArgumentException.class, () -> contrats.accepterConditions(100, 200));
+        assertThrows(IllegalArgumentException.class, () -> accepterEtConfirmer(100, 200));
         assertEquals(0, contratRepository.count());
     }
 
     @Test
     void nePeutAccepterDesChangementsEnAttenteRh() {
         service.proposer(100, 100, donnees("1200.00"));
-        assertThrows(IllegalStateException.class, () -> contrats.accepterConditions(100, 100));
+        assertThrows(IllegalStateException.class, () -> accepterEtConfirmer(100, 100));
         assertEquals(0, contratRepository.count());
     }
 
@@ -366,7 +453,7 @@ class ConditionTravailWorkflowTest {
         service.proposer(100, 100, donnees("1200.00"));
         ConditionTravail derniere = conditions.findFirstByIdCandidatureOrderByVersionDesc(100).orElseThrow();
         service.decider(derniere.getId(), true);
-        Contrat contrat = contrats.accepterConditions(100, 100);
+        Contrat contrat = accepterEtConfirmer(100, 100);
         assertEquals(derniere.getId(), contrat.getCondition().getId());
         assertEquals(new BigDecimal("1200.00"), contrat.getCondition().getSalaire());
     }

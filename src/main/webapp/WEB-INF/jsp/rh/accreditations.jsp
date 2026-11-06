@@ -10,7 +10,7 @@
 <jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
 <main class="container conditions-page">
  <a href="${pageContext.request.contextPath}/rh/dashboard">Retour au tableau de bord RH</a>
- <header class="conditions-hero"><div class="conditions-kicker">Espace ressources humaines</div><h1>Accréditations</h1><p>Accordez une accréditation CDI à un candidat avant son acceptation des conditions. Sans accréditation, il obtient un contrat d’essai.</p></header>
+ <header class="conditions-hero"><div class="conditions-kicker">Espace ressources humaines</div><h1>Accréditations</h1><p>Accordez une accréditation CDI à un candidat avant la confirmation de son contrat. Sans accréditation, il obtient un contrat d’essai. Avec cette accréditation, le candidat choisit entre CE et CDI.</p></header>
  <c:if test="${not empty success}"><div class="alert alert-success" role="status"><c:out value="${success}"/></div></c:if>
  <c:if test="${not empty error}"><div class="alert alert-danger" role="alert"><c:out value="${error}"/></div></c:if>
  <c:if test="${empty dossiers}"><div class="conditions-empty">Aucun candidat en attente d’accréditation.</div></c:if>
