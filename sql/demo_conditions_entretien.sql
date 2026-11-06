@@ -1,4 +1,4 @@
-﻿-- PostgreSQL : donnees de candidats retenus apres la troisieme etape.
+-- PostgreSQL : donnees de candidats retenus apres la troisieme etape.
 -- Mot de passe des trois candidats : Test1234!
 -- Reexecution sans doublons, sans effacer les reponses deja donnees.
 BEGIN;
@@ -40,6 +40,14 @@ BEGIN
         SELECT candidat.email, '$2a$10$j7PYAMkVM9NfRNegNCbcC.jOBno1H1I1O1rjBPGgftA3KiQAvVmgK', id FROM role WHERE code = 'CANDIDAT'
         ON CONFLICT (email) DO NOTHING;
         SELECT id INTO STRICT candidat_id FROM utilisateur WHERE email = candidat.email;
+        -- Le dossier par offre est indispensable a la creation de l'employe.
+        -- Complete aussi les candidats charges avec une ancienne version du script.
+        INSERT INTO cv_candidat (id_candidat, id_offre, nom, prenom, date_naissance, annee_experience, email, created_at)
+        SELECT candidat_id, offre_id, candidat.nom, candidat.prenom, DATE '1998-01-15', 0, candidat.email, CURRENT_TIMESTAMP
+        WHERE NOT EXISTS (
+            SELECT 1 FROM cv_candidat cc
+            WHERE cc.id_candidat = candidat_id AND cc.id_offre = offre_id
+        );
         SELECT id INTO candidature_id FROM candidature WHERE id_offre = offre_id AND id_candidat = candidat_id;
         IF candidature_id IS NULL THEN
             INSERT INTO cv (id_candidat, nom, prenom, date_naissance, diplome, competences)

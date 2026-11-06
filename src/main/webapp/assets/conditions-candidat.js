@@ -19,8 +19,8 @@ document.querySelectorAll('.conditions-page article').forEach((carte) => {
             message.textContent = 'Ajustez les conditions ci-dessous, puis envoyez votre proposition au RH.';
         } else if (code === 'OUI') {
             message.textContent = formulaire.dataset.apercu === 'true'
-                ? 'Simulation : les conditions seraient acceptées et un contrat CE serait créé (CDI avec accréditation RH). Aucune donnée enregistrée.'
-                : 'Acceptation des conditions et création de votre contrat en cours…';
+                ? 'Simulation : les conditions seraient acceptées avant une étape distincte de confirmation du contrat. Aucune donnée enregistrée.'
+                : 'Acceptation des conditions avant le choix du contrat…';
         } else {
             message.textContent = formulaire.dataset.apercu === 'true'
                 ? 'Simulation : les conditions seraient refusées et la candidature clôturée. Aucune donnée enregistrée.'

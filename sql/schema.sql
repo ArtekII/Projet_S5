@@ -421,3 +421,11 @@ INSERT INTO utilisateur (email, mot_de_passe, id_role, id_departement) VALUES
  ('finance@demo.com',   '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='FINANCE'), (SELECT id FROM departement WHERE nom='Finance')),
  ('direction@demo.com', '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='DIRECTION'), (SELECT id FROM departement WHERE nom='Direction')),
  ('candidat@demo.com',  '$2a$10$gq35vcShpyR0dTQy2UiLkOynCfOPFfkfGTxsoOdMsOWHn0SMuBuKG', (SELECT id FROM role WHERE code='CANDIDAT'), NULL);
+
+CREATE TABLE employe (
+    id_employe INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_utilisateur INT NOT NULL UNIQUE REFERENCES utilisateur(id),
+    id_cv_candidat INT NOT NULL REFERENCES cv_candidat(id),
+    id_contrat_actuel INT NOT NULL UNIQUE REFERENCES contrat(id),
+    date_embauche DATE NOT NULL
+);

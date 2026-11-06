@@ -46,13 +46,14 @@
     <div class="card-header"><h3 class="h6 mb-1"><c:out value="${d.intitule}"/></h3><span class="small text-muted"><c:out value="${d.email}"/> · Candidature n° ${d.id}</span></div>
     <div class="card-body">
      <p><strong>Type prévu :</strong> ${d.cdi_autorise ? 'CDI autorisé' : "Contrat d’essai"}</p>
-     <c:if test="${not empty d.actuelle.repondreAvant}">
+     <c:if test="${not empty d.actuelle.repondreAvant and d.actuelle.reponse.code != 'OUI'}">
       <p class="${d.expire ? 'text-danger' : 'text-muted'}">Réponse attendue avant le ${f:dateTime(d.actuelle.repondreAvant)} (heure de Madagascar). ${d.expire ? 'Délai expiré.' : ''}</p>
       <form method="post" action="${pageContext.request.contextPath}/rh/conditions/candidature/${d.id}/prolonger" class="mb-3">
        <button class="btn btn-outline-secondary">Prolonger le délai de réponse</button>
       </form>
      </c:if>
      <c:choose>
+      <c:when test="${d.actuelle.reponse.code == 'OUI'}"><span class="badge bg-success mb-3">Conditions acceptées, contrat à confirmer</span><c:set var="affichee" value="${d.actuelle}"/><%@ include file="../fragments/condition-summary.jsp" %></c:when>
       <c:when test="${empty d.actuelle}"><p class="text-muted mb-0">Définissez les conditions du poste pour permettre au candidat de les consulter.</p></c:when>
       <c:when test="${d.actuelle.roleProposant.code == 'RH'}"><span class="badge bg-secondary mb-3">En attente du candidat</span><c:set var="affichee" value="${d.actuelle}"/><%@ include file="../fragments/condition-summary.jsp" %></c:when>
       <c:otherwise>
