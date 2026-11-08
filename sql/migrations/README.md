@@ -18,3 +18,11 @@ d’un employé réel :
 - une date future programme un contrat successif, activé automatiquement à
   cette date par l’application ;
 - chaque contrat précédent reste consultable dans l’historique de l’employé.
+
+Pour les blocs 5 et 6, appliquer ensuite `20261108_dossier_administratif.sql`
+puis `20261108_planning_pointage.sql`, avant de redémarrer l'application.
+Le second script crée les plannings, pointages, alertes, corrections et variables
+de paie. Il peut être réexécuté sans effacer les données.
+
+Le fonctionnement et les règles de calcul du bloc 6 sont décrits dans
+[`docs/bloc-6-planning-pointage.md`](../../docs/bloc-6-planning-pointage.md).

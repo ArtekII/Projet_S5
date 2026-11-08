@@ -1,0 +1,20 @@
+<%@ page pageEncoding="UTF-8" %>
+<section id="pointages">
+ <h2 class="h4 mb-3">Mon planning et mes pointages</h2>
+ <c:choose><c:when test="${empty employePointage}"><div class="employe-empty">Le planning et les pointages seront disponibles après votre embauche.</div></c:when><c:otherwise>
+  <p>La connexion à votre compte enregistre votre entrée et « Se déconnecter » enregistre votre sortie. Les durées sont affichées en HH:MM:SS, dans le fuseau Indian/Antananarivo.</p>
+  <c:if test="${not empty alertesPointage}"><div class="alert alert-warning" role="status"><h3 class="h6">Notifications de pointage</h3><ul class="mb-0"><c:forEach var="a" items="${alertesPointage}"><li>${a.date} : <c:out value="${a.message}"/></li></c:forEach></ul></div></c:if>
+  <div class="card mb-4"><div class="card-header"><h3 class="h5 mb-0">Planning de la semaine</h3></div><div class="card-body table-responsive">
+   <table class="table"><thead><tr><th>Jour</th><th>Poste</th><th>Horaires</th><th>Pause</th></tr></thead><tbody>
+    <c:forEach var="j" items="${semainePlanning}"><tr><td><c:out value="${j.libelle}"/><br>${j.date}</td><td><c:out value="${j.planning.poste.intitule}" default="—"/></td><td><c:choose><c:when test="${empty j.planning}">Non défini</c:when><c:when test="${not j.planning.jourTravaille}">Repos</c:when><c:otherwise>${j.planning.heureDebut} → ${j.planning.heureFin}</c:otherwise></c:choose></td><td><c:choose><c:when test="${not empty j.planning.pauseDebut}">${j.planning.pauseDebut} → ${j.planning.pauseFin}</c:when><c:otherwise>—</c:otherwise></c:choose></td></tr></c:forEach>
+   </tbody></table>
+  </div></div>
+  <div class="card mb-4"><div class="card-header"><h3 class="h5 mb-0">Temps travaillé · 7 derniers jours</h3></div><div class="card-body">
+   <p class="small text-muted">Temps connecté hors pause prévue, sans double comptage des sessions simultanées. Le calcul se met à jour toutes les 30 secondes pendant une session ouverte. Les heures supplémentaires sont le dépassement de la durée journalière prévue.</p>
+   <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Entrée</th><th>Sortie</th><th>Prévu</th><th>Travaillé</th><th>Retard</th><th>Heures sup.</th><th>Statut</th></tr></thead><tbody>
+    <c:forEach var="b" items="${joursPointage}"><tr><td>${b.date}</td><td><c:out value="${b.premiereEntree}" default="—"/></td><td><c:out value="${b.derniereSortie}" default="—"/></td><td>${b.prevuFormate}</td><td><strong>${b.travailFormate}</strong></td><td>${b.retardFormate}</td><td>${b.supplementairesFormate}</td><td><c:choose><c:when test="${b.enCours}"><span class="badge bg-info text-dark" data-pointage-en-cours>En cours · provisoire</span></c:when><c:when test="${not empty b.transmission}"><span class="badge bg-success">Transmis à Finance</span></c:when><c:otherwise>Terminé / à vérifier</c:otherwise></c:choose></td></tr></c:forEach>
+   </tbody></table></div>
+  </div></div>
+  <script src="${pageContext.request.contextPath}/assets/pointage.js" defer></script>
+ </c:otherwise></c:choose>
+</section>

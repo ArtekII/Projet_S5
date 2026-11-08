@@ -4,6 +4,7 @@ import com.project.entity.DossierAdministratif;
 import com.project.entity.DocumentAdministratif;
 import com.project.entity.ParcoursProfessionnel;
 import com.project.service.DossierAdministratifService;
+import com.project.service.PointageService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -27,8 +28,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class DossierAdministratifController {
     private final DossierAdministratifService service;
+    private final PointageService pointages;
 
-    public DossierAdministratifController(DossierAdministratifService service) { this.service = service; }
+    public DossierAdministratifController(DossierAdministratifService service, PointageService pointages) {
+        this.service = service; this.pointages = pointages;
+    }
 
     @InitBinder("fiche")
     void ficheBinder(WebDataBinder binder) {
@@ -78,6 +82,9 @@ public class DossierAdministratifController {
         model.addAttribute("espaceEmploye", personnel);
         model.addAttribute("gestionRh", !personnel && Boolean.TRUE.equals(vue.get("gestionRh")));
         if (!model.containsAttribute("ongletEmploye")) model.addAttribute("ongletEmploye", "renseignements");
+        if (personnel && "pointages".equals(model.getAttribute("ongletEmploye"))) {
+            model.addAllAttributes(pointages.espaceUtilisateur(acteur(session)));
+        }
         model.addAttribute("baseDossier", chemin(utilisateurId));
         model.addAttribute("typesDocument", DossierAdministratifService.TYPES_DOCUMENT);
         if (!model.containsAttribute("nouveauParcours")) model.addAttribute("nouveauParcours", new ParcoursProfessionnel());
@@ -93,7 +100,7 @@ public class DossierAdministratifController {
     @GetMapping({"/espaceEmploye", "/dossier", "/rh/dossiers/{utilisateurId}"})
     String detail(@PathVariable(required = false) Integer utilisateurId,
             @RequestParam(defaultValue = "renseignements") String onglet, HttpSession session, Model model) {
-        model.addAttribute("ongletEmploye", Set.of("renseignements", "documents", "cv", "contrats", "parcours", "integration").contains(onglet)
+        model.addAttribute("ongletEmploye", Set.of("renseignements", "documents", "cv", "contrats", "parcours", "integration", "pointages").contains(onglet)
                 ? onglet : "renseignements");
         return afficher(utilisateurId, session, model);
     }
