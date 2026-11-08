@@ -23,6 +23,7 @@
    <a href="${pageContext.request.contextPath}/espaceEmploye?onglet=cv" aria-current="${ongletEmploye == 'cv' ? 'page' : 'false'}">Mes CV <small>${fn:length(cvs) + fn:length(cvsCandidats)}</small></a>
    <a href="${pageContext.request.contextPath}/espaceEmploye?onglet=contrats" aria-current="${ongletEmploye == 'contrats' ? 'page' : 'false'}">Mes contrats <small>${fn:length(contrats)}</small></a>
    <a href="${pageContext.request.contextPath}/espaceEmploye?onglet=parcours" aria-current="${ongletEmploye == 'parcours' ? 'page' : 'false'}">Mon parcours professionnel</a>
+   <c:if test="${not empty employe}"><a href="${pageContext.request.contextPath}/espaceEmploye?onglet=conges" aria-current="${ongletEmploye == 'conges' ? 'page' : 'false'}">Mes congés</a></c:if>
    <c:if test="${not empty employe}"><a href="${pageContext.request.contextPath}/espaceEmploye?onglet=integration" aria-current="${ongletEmploye == 'integration' ? 'page' : 'false'}">Mon intégration</a></c:if>
   </nav>
   <nav class="employe-retour" aria-label="Autres espaces">
@@ -55,6 +56,7 @@
   </div>
   <%@ include file="../fragments/dossier-contenu.jspf" %>
   <c:if test="${ongletEmploye == 'pointages'}"><%@ include file="../fragments/pointage-employe.jspf" %></c:if>
+  <c:if test="${ongletEmploye == 'conges'}"><%@ include file="../fragments/conges-employe.jspf" %></c:if>
   <c:if test="${ongletEmploye == 'integration' and empty employe}"><div class="employe-empty">Votre suivi d'intégration sera disponible après votre embauche.</div></c:if>
  </main>
 </div>

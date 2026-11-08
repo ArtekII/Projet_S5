@@ -584,3 +584,77 @@ CREATE TABLE IF NOT EXISTS variable_paie_pointage (
     transmis_le TIMESTAMP NOT NULL,
     CONSTRAINT uk_variable_pointage_employe_date UNIQUE (id_employe, date_pointage)
 );
+
+-- BLOC 7 : CONGES
+-- PostgreSQL : apres 20261108_conges.sql. Reexecutable sans effacer les donnees.
+CREATE TABLE IF NOT EXISTS type_conge (
+    id_type_conge INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    libelle VARCHAR(100) NOT NULL,
+    est_remunere BOOLEAN NOT NULL DEFAULT TRUE,
+    decompte_solde BOOLEAN NOT NULL DEFAULT TRUE,
+    acquisition_mensuelle DECIMAL(4,2)
+        CHECK (acquisition_mensuelle IS NULL OR acquisition_mensuelle >= 0),
+    actif BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS conge (
+    id_conge INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_employe INT NOT NULL REFERENCES employe(id_employe),
+    id_type_conge INT NOT NULL REFERENCES type_conge(id_type_conge),
+    date_debut DATE NOT NULL,
+    date_fin DATE NOT NULL,
+    nb_jours DECIMAL(5,2) NOT NULL,
+    statut VARCHAR(20) NOT NULL DEFAULT 'EN_ATTENTE'
+        CHECK (statut IN ('EN_ATTENTE', 'VALIDE', 'REFUSE', 'ANNULE')),
+    commentaire VARCHAR(500),
+    date_demande TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    date_decision TIMESTAMP,
+    CHECK (date_fin >= date_debut),
+    CHECK (nb_jours > 0)
+);
+CREATE INDEX IF NOT EXISTS idx_conge_employe_dates ON conge (id_employe, date_debut, date_fin);
+CREATE INDEX IF NOT EXISTS idx_conge_statut ON conge (statut);
+
+CREATE TABLE IF NOT EXISTS solde_conge (
+    id_solde INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_employe INT NOT NULL REFERENCES employe(id_employe),
+    id_type_conge INT NOT NULL REFERENCES type_conge(id_type_conge),
+    periode_debut DATE NOT NULL,
+    periode_fin DATE NOT NULL,
+    jours_acquis DECIMAL(5,2) NOT NULL DEFAULT 0,
+    jours_pris DECIMAL(5,2) NOT NULL DEFAULT 0,
+    solde_disponible DECIMAL(5,2)
+        GENERATED ALWAYS AS (jours_acquis - jours_pris) STORED,
+    date_maj TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_solde_conge UNIQUE (id_employe, id_type_conge, periode_debut),
+    CHECK (periode_fin >= periode_debut),
+    CHECK (jours_acquis >= 0),
+    CHECK (jours_pris >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS historique_conge (
+    id_historique BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_conge INT NOT NULL REFERENCES conge(id_conge),
+    id_employe INT NOT NULL REFERENCES employe(id_employe),
+    action VARCHAR(20) NOT NULL
+        CHECK (action IN ('CREATION', 'MODIFICATION', 'VALIDATION', 'REFUS',
+                          'ANNULATION', 'PRISE_EFFECTIVE')),
+    ancien_statut VARCHAR(20),
+    nouveau_statut VARCHAR(20),
+    nb_jours DECIMAL(5,2),
+    solde_avant DECIMAL(5,2),
+    solde_apres DECIMAL(5,2),
+    id_auteur INT REFERENCES utilisateur(id),
+    date_action TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    commentaire VARCHAR(500)
+);
+CREATE INDEX IF NOT EXISTS idx_hist_conge ON historique_conge (id_conge, date_action);
+
+INSERT INTO type_conge (code, libelle, est_remunere, decompte_solde, acquisition_mensuelle, actif)
+VALUES
+    ('CP', 'Congés payés', TRUE, TRUE, 2.50, TRUE),
+    ('RTT', 'Réduction du temps de travail', TRUE, TRUE, 1.00, TRUE),
+    ('MAL', 'Arrêt maladie', TRUE, FALSE, NULL, TRUE),
+    ('SANS_SOLDE', 'Congé sans solde', FALSE, FALSE, NULL, TRUE)
+ON CONFLICT (code) DO NOTHING;
