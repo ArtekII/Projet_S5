@@ -378,12 +378,15 @@ CREATE TABLE condition_travail (
 
 CREATE TABLE contrat (
     id                INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_candidature    INT NOT NULL UNIQUE REFERENCES candidature(id),
+    id_candidature    INT UNIQUE REFERENCES candidature(id),   -- NULL pour un contrat successif rattache a un employe
+    id_employe        INT,                                      -- FK ajoutee apres creation de la table employe
     id_condition      INT NOT NULL REFERENCES condition_travail(id),
     id_type_contrat   INT NOT NULL DEFAULT 1 REFERENCES type_contrat(id),   -- 1 = CE
     date_debut        DATE,
     date_fin          DATE,                              -- NULL pour un CDI
-    statut            VARCHAR(20) NOT NULL DEFAULT 'FINALISE' CHECK (statut = 'FINALISE'),
+    duree_mois        INT CHECK (duree_mois IS NULL OR duree_mois > 0),
+    statut            VARCHAR(20) NOT NULL DEFAULT 'FINALISE'
+                      CHECK (statut IN ('FINALISE', 'PROGRAMME')),
     id_rh_preparation INT REFERENCES utilisateur(id),
     created_at        TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -429,3 +432,6 @@ CREATE TABLE employe (
     id_contrat_actuel INT NOT NULL UNIQUE REFERENCES contrat(id),
     date_embauche DATE NOT NULL
 );
+
+ALTER TABLE contrat
+    ADD CONSTRAINT fk_contrat_employe FOREIGN KEY (id_employe) REFERENCES employe(id_employe);

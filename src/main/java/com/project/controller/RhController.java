@@ -1,9 +1,11 @@
 package com.project.controller;
 
 import com.project.entity.ConditionTravail;
+import com.project.entity.Contrat;
 import com.project.entity.Poste;
 import com.project.service.ConditionTravailService;
 import com.project.service.ContratService;
+import com.project.service.ContratEmployeService;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
@@ -25,6 +27,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.util.ArrayList;
@@ -38,14 +41,17 @@ public class RhController {
   private final OffreService offreService;
   private final ConditionTravailService conditionService;
   private final ContratService contratService;
+  private final ContratEmployeService contratEmployeService;
   private final AuthService authService;
   private final CandidatureService candidatureService;
   private final QuestionnaireService questionnaireService;
   private final ReponseCandidatService responseCandidatService;
 
   public RhController(OffreService o, AuthService a, ConditionTravailService conditionService,
-      ContratService contratService, CandidatureService c, QuestionnaireService q, ReponseCandidatService r) {
+      ContratService contratService, CandidatureService c, QuestionnaireService q, ReponseCandidatService r,
+      ContratEmployeService contratEmployeService) {
     this.contratService = contratService;
+    this.contratEmployeService = contratEmployeService;
     this.offreService = o;
     this.authService = a;
     this.conditionService = conditionService;
@@ -374,8 +380,37 @@ public class RhController {
 
     @GetMapping("/contrats")
     public String contrats(Model model) {
+        // Applique sans attendre la tache planifiee les contrats arrives a echeance.
+        contratEmployeService.activerContratsDus();
         model.addAttribute("contrats", contratService.tousLesContrats());
+        List<Map<String, Object>> employes = contratEmployeService.employesAvecContrat();
+        model.addAttribute("employes", employes);
+        model.addAttribute("typesContrat", contratEmployeService.typesContrat());
+        model.addAttribute("historiques", contratEmployeService.historiquesParEmploye(employes));
         return "rh/contrats";
+    }
+
+    @PostMapping("/contrats")
+    public String programmerContrat(@RequestParam Integer idEmp,
+            @RequestParam String typeContrat,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+            @RequestParam(required = false) Integer dureeMois,
+            HttpSession session, RedirectAttributes flash) {
+        try {
+            Utilisateur rh = authService.currentUser(session).orElseThrow();
+            var contrat = contratEmployeService.programmer(idEmp, typeContrat, dateDebut, dureeMois, rh.getId());
+            if (Contrat.STATUT_PROGRAMME.equals(contrat.getStatut())) {
+                flash.addFlashAttribute("success", "Contrat programme pour l'employe n° " + idEmp
+                        + " a partir du " + contrat.getDateDebut() + ".");
+            } else {
+                flash.addFlashAttribute("success", "Contrat de l'employe n° " + idEmp
+                        + " modifie : " + contrat.getTypeContrat().getCode() + " effectif depuis le "
+                        + contrat.getDateDebut() + ".");
+            }
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/rh/contrats";
     }
 
 }
