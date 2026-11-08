@@ -25,8 +25,8 @@ h1,h2,h3{font-family:"Bricolage Grotesque","Source Sans 3",system-ui,sans-serif;
 .logo{font:800 1.25rem "Bricolage Grotesque",sans-serif;padding:0 8px}
 .logo span{background:var(--hl);color:var(--hl-ink);padding:0 6px;border-radius:4px;margin-right:4px}
 .nav{display:flex;flex-direction:column;gap:4px}
-.nav label{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;font-weight:600;cursor:pointer;border:1px solid transparent}
-.nav label:hover{border-color:var(--line)}
+.nav label,.nav a{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;font-weight:600;cursor:pointer;border:1px solid transparent;color:inherit;text-decoration:none}
+.nav label:hover,.nav a:hover{border-color:var(--line)}
 .nav small{background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:0 9px;font-size:.8rem;color:var(--muted)}
 #v-offres:checked~.side label[for="v-offres"],#v-cand:checked~.side label[for="v-cand"],#v-etapes:checked~.side label[for="v-etapes"],#v-cv:checked~.side label[for="v-cv"]{background:var(--accent);color:var(--accent-ink)}
 #v-offres:checked~.side label[for="v-offres"] small,#v-cand:checked~.side label[for="v-cand"] small{background:transparent;border-color:currentColor;color:inherit}
@@ -136,6 +136,7 @@ label.go{cursor:pointer}
 <label for="v-cv">Déposer mon CV</label>
 <label for="v-cand">Mes candidatures <small>${nbCandidatures}</small></label>
 <label for="v-etapes">Étapes de postulation</label>
+<a href="<c:url value='/espaceEmploye'/>">Espace employé →</a>
 </nav>
 <div class="me"><div class="av">${userEmail.substring(0,1).toUpperCase()}</div><div><b>${userEmail}</b><a href="<c:url value='/logout'/>">Se déconnecter</a></div></div>
 </aside>

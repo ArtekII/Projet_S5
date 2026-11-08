@@ -1,0 +1,143 @@
+<%@ page pageEncoding="UTF-8" %>
+ <c:if test="${not espaceEmploye or ongletEmploye == 'renseignements'}">
+ <section id="renseignements" class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h5 mb-0">Fiche de renseignements</h2></div><div class="card-body">
+   <form:form modelAttribute="fiche" method="post" action="${pageContext.request.contextPath}${baseDossier}/fiche" cssClass="row g-3">
+    <input type="hidden" name="dossierCsrf" value="${dossierCsrf}"><form:hidden path="revision"/>
+    <form:errors path="*" cssClass="alert alert-danger" element="div" htmlEscape="true"/>
+    <div class="col-md-6"><label for="nom" class="form-label">Nom *</label><form:input path="nom" id="nom" cssClass="form-control" maxlength="100" required="required" htmlEscape="true"/></div>
+    <div class="col-md-6"><label for="prenom" class="form-label">Prénom *</label><form:input path="prenom" id="prenom" cssClass="form-control" maxlength="100" required="required" htmlEscape="true"/></div>
+    <div class="col-md-4"><label for="dateNaissance" class="form-label">Date de naissance *</label><form:input path="dateNaissance" id="dateNaissance" type="date" cssClass="form-control" required="required"/></div>
+    <div class="col-md-4"><label for="lieuNaissance" class="form-label">Lieu de naissance</label><form:input path="lieuNaissance" id="lieuNaissance" cssClass="form-control" maxlength="150" htmlEscape="true"/></div>
+    <div class="col-md-4"><label for="nationalite" class="form-label">Nationalité</label><form:input path="nationalite" id="nationalite" cssClass="form-control" maxlength="100" htmlEscape="true"/></div>
+    <div class="col-md-6"><label for="numeroIdentite" class="form-label">Numéro de pièce d'identité</label><form:input path="numeroIdentite" id="numeroIdentite" cssClass="form-control" maxlength="100" htmlEscape="true"/></div>
+    <div class="col-md-6"><label for="situationMatrimoniale" class="form-label">Situation matrimoniale *</label>
+     <form:select path="situationMatrimoniale" id="situationMatrimoniale" cssClass="form-select" required="required">
+      <form:option value="" label="Choisir…"/><form:option value="CELIBATAIRE" label="Célibataire"/><form:option value="MARIE" label="Marié(e)"/>
+      <form:option value="DIVORCE" label="Divorcé(e)"/><form:option value="VEUF" label="Veuf / veuve"/><form:option value="UNION_LIBRE" label="Union libre"/>
+     </form:select>
+    </div>
+    <div class="col-md-8"><label for="adresse" class="form-label">Adresse *</label><form:input path="adresse" id="adresse" cssClass="form-control" maxlength="500" required="required" htmlEscape="true"/></div>
+    <div class="col-md-4"><label for="nombreEnfants" class="form-label">Nombre d'enfants</label><form:input path="nombreEnfants" id="nombreEnfants" type="number" min="0" max="50" cssClass="form-control"/></div>
+    <div class="col-md-6"><label for="telephone" class="form-label">Téléphone *</label><form:input path="telephone" id="telephone" type="tel" cssClass="form-control" maxlength="40" required="required" htmlEscape="true"/></div>
+    <div class="col-md-6"><label for="emailPersonnel" class="form-label">Email de contact *</label><form:input path="emailPersonnel" id="emailPersonnel" type="email" cssClass="form-control" maxlength="255" required="required" htmlEscape="true"/></div>
+    <div class="col-md-6"><label for="contactUrgence" class="form-label">Contact d'urgence</label><form:input path="contactUrgence" id="contactUrgence" cssClass="form-control" maxlength="150" htmlEscape="true"/></div>
+    <div class="col-md-6"><label for="telephoneUrgence" class="form-label">Téléphone d'urgence</label><form:input path="telephoneUrgence" id="telephoneUrgence" type="tel" cssClass="form-control" maxlength="40" htmlEscape="true"/></div>
+    <div class="col-12"><button class="btn btn-primary">Enregistrer les renseignements</button> <span class="small text-muted">* Champs obligatoires</span></div>
+   </form:form>
+  </div>
+ </section>
+
+ </c:if>
+ <c:if test="${not espaceEmploye or ongletEmploye == 'documents'}">
+ <section id="documents" class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h5 mb-0">Documents et validité</h2></div><div class="card-body">
+   <p>Déposez un PDF, JPEG ou PNG de 10 Mo maximum. Chaque dépôt est conservé dans l'historique documentaire.</p>
+   <form method="post" enctype="multipart/form-data" action="${pageContext.request.contextPath}${baseDossier}/documents" class="row g-3 mb-4">
+    <input type="hidden" name="dossierCsrf" value="${dossierCsrf}">
+    <div class="col-md-3"><label for="typeDocument" class="form-label">Type de document</label><select id="typeDocument" name="type" class="form-select" required><c:forEach var="type" items="${typesDocument}"><option value="${type}"><c:out value="${type}"/></option></c:forEach></select></div>
+    <div class="col-md-5"><label for="fichier" class="form-label">Fichier</label><input id="fichier" name="fichier" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required></div>
+    <div class="col-md-2"><label for="dateDelivrance" class="form-label">Délivré le</label><input id="dateDelivrance" name="dateDelivrance" type="date" class="form-control"></div>
+    <div class="col-md-2"><label for="dateExpiration" class="form-label">Expire le</label><input id="dateExpiration" name="dateExpiration" type="date" class="form-control"></div>
+    <div class="col-12"><button class="btn btn-primary">Déposer le document</button></div>
+   </form>
+   <c:if test="${empty documents}"><p class="text-muted">Aucun document déposé.</p></c:if>
+   <c:forEach var="doc" items="${documents}"><article class="border rounded p-3 mb-3">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+     <strong><c:out value="${doc.type}"/></strong>
+     <a href="${pageContext.request.contextPath}${baseDossier}/documents/${doc.id}"><c:out value="${doc.nomFichier}"/></a>
+     <c:choose>
+      <c:when test="${doc.validite == 'EXPIRE'}"><span class="badge bg-danger">Expiré</span></c:when>
+      <c:when test="${doc.validite == 'A_RENOUVELER'}"><span class="badge bg-warning text-dark">À renouveler sous 30 jours</span></c:when>
+      <c:when test="${doc.validite == 'VALIDE'}"><span class="badge bg-success">Valide</span></c:when>
+      <c:otherwise><span class="badge bg-secondary">Sans échéance renseignée</span></c:otherwise>
+     </c:choose>
+    </div>
+    <p class="small text-muted mb-1">Dépôt : ${doc.deposeLe} · Délivrance : <c:out value="${doc.dateDelivrance}" default="—"/> · Expiration : <c:out value="${doc.dateExpiration}" default="—"/></p>
+    <c:if test="${gestionRh}"><details><summary class="small">Corriger la validité</summary>
+     <form method="post" action="${pageContext.request.contextPath}/rh/dossiers/${titulaire.id}/documents/${doc.id}/validite" class="row g-2 mt-1">
+      <input type="hidden" name="dossierCsrf" value="${dossierCsrf}">
+      <div class="col-md-4"><label for="delivrance-${doc.id}" class="form-label">Délivré le</label><input id="delivrance-${doc.id}" name="dateDelivrance" type="date" value="${doc.dateDelivrance}" class="form-control"></div>
+      <div class="col-md-4"><label for="expiration-${doc.id}" class="form-label">Expire le</label><input id="expiration-${doc.id}" name="dateExpiration" type="date" value="${doc.dateExpiration}" class="form-control"></div>
+      <div class="col-md-4 d-flex align-items-end"><button class="btn btn-outline-primary">Enregistrer la validité</button></div>
+     </form>
+    </details></c:if>
+   </article></c:forEach>
+  </div>
+ </section>
+
+ </c:if>
+ <c:if test="${not espaceEmploye or ongletEmploye == 'cv'}">
+ <section id="cv" class="card shadow-sm mb-4"><div class="card-header"><h2 class="h5 mb-0">CV et dossiers de candidature</h2></div><div class="card-body">
+  <c:if test="${empty cvs and empty cvsCandidats}"><p class="text-muted">Aucun CV de recrutement. Vous pouvez déposer un CV dans les documents.</p></c:if>
+  <c:forEach var="cv" items="${cvs}"><article class="border-bottom mb-3 pb-2">
+   <h3 class="h6">CV n° ${cv.id} · <c:out value="${cv.nom}"/> <c:out value="${cv.prenom}"/></h3>
+   <p><strong>Diplômes :</strong> <c:out value="${cv.diplome}"/></p><p><strong>Compétences :</strong> <c:out value="${cv.competences}"/></p>
+   <p><strong>Centres d'intérêt :</strong> <c:out value="${cv.hobby}"/></p>
+  </article></c:forEach>
+  <c:forEach var="cv" items="${cvsCandidats}"><p>Dossier CV n° ${cv.id} · <c:out value="${cv.nom}"/> <c:out value="${cv.prenom}"/> · Expérience : ${cv.anneeExperience} an(s)
+   <c:if test="${not empty employe and employe.cvCandidatId == cv.id}"><span class="badge bg-primary">CV d'embauche</span></c:if>
+  </p></c:forEach>
+ </div></section>
+
+ </c:if>
+ <c:if test="${not espaceEmploye or ongletEmploye == 'contrats'}">
+ <section id="contrats" class="card shadow-sm mb-4"><div class="card-header"><h2 class="h5 mb-0">Contrats, affectations et salaires contractuels</h2></div><div class="card-body">
+  <c:if test="${empty contrats}"><p class="text-muted">Aucun contrat d'employé.</p></c:if>
+  <c:if test="${gestionRh and not empty employe}"><p><a href="${pageContext.request.contextPath}/rh/contrats">Gérer les contrats successifs</a></p></c:if>
+  <div class="table-responsive"><table class="table"><thead><tr><th>Contrat</th><th>Période</th><th>Poste / lieu</th><th>Salaire contractuel</th><th>Statut</th></tr></thead><tbody>
+   <c:forEach var="ct" items="${contrats}"><tr>
+    <td>N° ${ct.id} · <c:out value="${ct.typeCode}"/><c:if test="${ct.actuel}"> <span class="badge bg-primary">Actuel</span></c:if></td>
+    <td>${ct.dateDebut} → <c:out value="${ct.dateFin}" default="Indéterminée"/></td>
+    <td><c:out value="${ct.poste}"/><br><c:out value="${ct.lieuTravail}"/></td><td><c:out value="${ct.salaire}"/></td><td><c:out value="${ct.statut}"/></td>
+   </tr></c:forEach>
+  </tbody></table></div>
+ </div></section>
+
+ </c:if>
+ <c:if test="${not espaceEmploye or ongletEmploye == 'parcours'}">
+ <section id="parcours" class="card shadow-sm mb-4"><div class="card-header"><h2 class="h5 mb-0">Affectations, salaires et historique professionnel</h2></div><div class="card-body">
+  <c:if test="${empty parcours}"><p class="text-muted">Aucun événement professionnel complémentaire.</p></c:if>
+  <c:forEach var="p" items="${parcours}"><article class="border-bottom mb-3 pb-2">
+   <h3 class="h6"><c:out value="${p.type}"/> · <c:out value="${p.libelle}"/></h3>
+   <p class="mb-1">${p.dateDebut} → <c:out value="${p.dateFin}" default="En cours"/><c:if test="${not empty p.montant}"> · Montant : <c:out value="${p.montant}"/></c:if></p>
+   <p><c:out value="${p.description}"/></p>
+  </article></c:forEach>
+  <c:if test="${gestionRh and not empty employe}">
+   <h3 class="h6">Ajouter à l'historique</h3>
+   <form:form modelAttribute="nouveauParcours" method="post" action="${pageContext.request.contextPath}/rh/dossiers/${titulaire.id}/parcours" cssClass="row g-3">
+    <input type="hidden" name="dossierCsrf" value="${dossierCsrf}">
+    <form:errors path="*" cssClass="alert alert-danger" element="div" htmlEscape="true"/>
+    <div class="col-md-4"><label for="parcoursType" class="form-label">Événement</label><form:select path="type" id="parcoursType" cssClass="form-select"><form:option value="AFFECTATION" label="Affectation"/><form:option value="SALAIRE" label="Salaire"/><form:option value="EXPERIENCE" label="Expérience professionnelle"/></form:select></div>
+    <div class="col-md-8"><label for="libelle" class="form-label">Poste, service ou intitulé</label><form:input path="libelle" id="libelle" cssClass="form-control" maxlength="255" required="required" htmlEscape="true"/></div>
+    <div class="col-md-4"><label for="parcoursDebut" class="form-label">Date d'effet</label><form:input path="dateDebut" id="parcoursDebut" type="date" cssClass="form-control" required="required"/></div>
+    <div class="col-md-4"><label for="parcoursFin" class="form-label">Fin de période</label><form:input path="dateFin" id="parcoursFin" type="date" cssClass="form-control"/></div>
+    <div class="col-md-4"><label for="montant" class="form-label">Montant (salaire uniquement)</label><form:input path="montant" id="montant" type="number" min="0" max="9999999999.99" step="0.01" cssClass="form-control"/></div>
+    <div class="col-12"><label for="description" class="form-label">Précisions (pour un salaire : devise et périodicité)</label><form:textarea path="description" id="description" cssClass="form-control" maxlength="2000" htmlEscape="true"/></div>
+    <div class="col-12"><button class="btn btn-primary">Ajouter l'événement</button></div>
+   </form:form>
+  </c:if>
+ </div></section>
+
+ </c:if>
+ <c:if test="${not empty employe and (not espaceEmploye or ongletEmploye == 'integration')}"><section id="integration" class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h5 mb-0">Checklist d'intégration</h2></div><div class="card-body">
+   <c:if test="${empty fiche.id}"><p>Complétez la fiche de renseignements pour enregistrer la checklist.</p></c:if>
+   <form method="post" action="${pageContext.request.contextPath}/rh/dossiers/${titulaire.id}/integration">
+    <input type="hidden" name="dossierCsrf" value="${dossierCsrf}"><input type="hidden" name="revision" value="${fiche.revision}">
+    <c:forTokens var="etape" items="signature,badge,compte,materiel,formation,paie" delims=",">
+     <div class="form-check mb-2"><input type="checkbox" class="form-check-input" id="integration-${etape}" name="etapes" value="${etape}" ${fiche[etape] ? 'checked' : ''} ${not gestionRh or empty fiche.id ? 'disabled' : ''}>
+      <label class="form-check-label" for="integration-${etape}"><c:choose><c:when test="${etape == 'signature'}">Signature du contrat</c:when><c:when test="${etape == 'badge'}">Badge remis</c:when><c:when test="${etape == 'compte'}">Compte créé</c:when><c:when test="${etape == 'materiel'}">Matériel remis</c:when><c:when test="${etape == 'formation'}">Formation réalisée</c:when><c:otherwise>Inscription à la paie</c:otherwise></c:choose></label>
+     </div>
+    </c:forTokens>
+    <c:if test="${gestionRh and not empty fiche.id}"><button class="btn btn-primary">Enregistrer l'intégration</button></c:if>
+   </form>
+  </div>
+ </section></c:if>
+
+ <c:if test="${gestionRh}"><section id="journal" class="card shadow-sm mb-5"><div class="card-header"><h2 class="h5 mb-0">Journal des accès et modifications</h2></div><div class="card-body">
+  <p class="small text-muted">Les 100 derniers événements sont affichés. L'historique complet reste conservé.</p>
+  <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Date</th><th>Auteur</th><th>Action</th><th>Détail</th></tr></thead><tbody>
+   <c:forEach var="j" items="${journal}"><tr><td>${j.dateAction}</td><td><c:out value="${j.acteur.email}"/></td><td><c:out value="${j.action}"/></td><td><c:out value="${j.detail}"/></td></tr></c:forEach>
+  </tbody></table></div>
+ </div></section></c:if>

@@ -75,7 +75,7 @@
      <tbody>
       <c:forEach var="e" items="${employes}">
        <tr>
-        <td><strong>Emp ${e.id}</strong><br><span class="small text-muted"><c:out value="${e.email}"/></span></td>
+        <td><strong>Emp ${e.id}</strong><br><span class="small text-muted"><c:out value="${e.email}"/></span><br><a class="small" href="${pageContext.request.contextPath}/rh/dossiers/${e.utilisateurId}">Dossier et intégration</a></td>
         <td>${e.dateEmbauche}</td>
         <td><span class="badge bg-primary"><c:out value="${e.typeCode}"/></span><br><span class="small text-muted"><c:out value="${e.typeLibelle}"/></span></td>
         <td>${empty e.dateDebut ? '—' : e.dateDebut}</td>

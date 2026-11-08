@@ -44,7 +44,7 @@ public class ContratEmployeService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> employesAvecContrat() {
         return jdbc.queryForList("""
-                select e.id_employe as id, e.date_embauche as dateEmbauche,
+                select e.id_employe as id, e.id_utilisateur as utilisateurId, e.date_embauche as dateEmbauche,
                        u.email as email,
                        c.id as contratId, c.date_debut as dateDebut, c.date_fin as dateFin,
                        c.duree_mois as dureeMois, c.statut as statut,
