@@ -23,7 +23,7 @@ import jakarta.persistence.UniqueConstraint;
             name = "uk_candidats_selec",
             columnNames = {
                 "id_offre",
-                "id_cv_candidat",
+                "id_cv",
                 "id_etape"
             }
         )
@@ -40,8 +40,8 @@ public class CandidatsSelec {
     private OffreEmploi offreEmploi;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_cv_candidat", nullable = false)
-    private CvCandidat cvCandidat;
+    @JoinColumn(name = "id_cv", nullable = false)
+    private Cv cv;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_etape", nullable = false)
@@ -75,12 +75,12 @@ public class CandidatsSelec {
         this.offreEmploi = offreEmploi;
     }
 
-    public CvCandidat getCvCandidat() {
-        return cvCandidat;
+    public Cv getCv() {
+        return cv;
     }
 
-    public void setCvCandidat(CvCandidat cvCandidat) {
-        this.cvCandidat = cvCandidat;
+    public void setCv(Cv cv) {
+        this.cv = cv;
     }
 
     public Etape getEtape() {

@@ -25,7 +25,7 @@ public interface CandidatsSelecRepository
         JOIN FETCH cs.offreEmploi o
         JOIN FETCH o.poste
         JOIN FETCH o.departement
-        JOIN FETCH cs.cvCandidat cv
+        JOIN FETCH cs.cv cv
         JOIN FETCH cs.etape
         WHERE cv.candidat.id = :idCandidat
         ORDER BY cs.dateSelection ASC, cs.etape.id ASC

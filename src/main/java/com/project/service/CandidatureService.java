@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.project.entity.Candidature;
 import com.project.entity.CandidatureEtape;
 import com.project.entity.Cv;
-import com.project.entity.CvCandidat;
 import com.project.entity.EtapeRecrutement;
 import com.project.entity.OffreEmploi;
 import com.project.entity.Resultat;
@@ -19,7 +18,6 @@ import com.project.entity.StatutCandidature;
 import com.project.entity.Utilisateur;
 import com.project.repository.CandidatureEtapeRepository;
 import com.project.repository.CandidatureRepository;
-import com.project.repository.CvCandidatRepository;
 import com.project.repository.CvRepository;
 import com.project.repository.EtapeRecrutementRepository;
 import com.project.repository.OffreEmploiRepository;
@@ -31,7 +29,6 @@ import com.project.repository.UtilisateurRepository;
 public class CandidatureService {
 
     private final CandidatureRepository candidatureRepository;
-    private final CvCandidatRepository cvCandidatRepository;
     private final CvRepository cvRepository;
     private final OffreEmploiRepository offreRepository;
     private final UtilisateurRepository utilisateurRepository;
@@ -41,7 +38,6 @@ public class CandidatureService {
     private final ResultatRepository resultatRepository;
 
     public CandidatureService(CandidatureRepository candidatureRepository,
-            CvCandidatRepository cvCandidatRepository,
             CvRepository cvRepository,
             OffreEmploiRepository offreRepository,
             UtilisateurRepository utilisateurRepository,
@@ -50,7 +46,6 @@ public class CandidatureService {
             CandidatureEtapeRepository candidatureEtapeRepository,
             ResultatRepository resultatRepository) {
         this.candidatureRepository = candidatureRepository;
-        this.cvCandidatRepository = cvCandidatRepository;
         this.cvRepository = cvRepository;
         this.offreRepository = offreRepository;
         this.utilisateurRepository = utilisateurRepository;
@@ -87,24 +82,14 @@ public class CandidatureService {
         OffreEmploi offre = offreRepository.findById(idOffre)
                 .orElseThrow(() -> new IllegalStateException("Offre introuvable."));
 
-        // CV depose par le candidat (table cv_candidat)
-        CvCandidat cvCandidat = new CvCandidat();
-        cvCandidat.setCandidat(candidat);
-        cvCandidat.setOffreEmploi(offre);
-        cvCandidat.setNom(nom);
-        cvCandidat.setPrenom(prenom);
-        cvCandidat.setDateNaissance(dateNaissance);
-        cvCandidat.setAnneeExperience(anneeExperience == null ? 0 : anneeExperience);
-        cvCandidat.setEmail(email);
-        cvCandidat.setCreatedAt(LocalDateTime.now());
-        cvCandidatRepository.save(cvCandidat);
-
-        // Cursus complet (table cv) : reference obligatoire de la candidature
+        // CV depose par le candidat : une seule entite desormais
         Cv cv = new Cv();
         cv.setCandidat(candidat);
         cv.setNom(nom);
         cv.setPrenom(prenom);
         cv.setDateNaissance(dateNaissance == null ? LocalDate.now() : dateNaissance);
+        cv.setAnneeExperience(anneeExperience == null ? 0 : anneeExperience);
+        cv.setEmail(email);
         cv.setDiplome(diplome == null || diplome.isBlank() ? "Non renseigne" : diplome);
         cv.setCompetences(competences == null || competences.isBlank() ? "Non renseigne"
                 : competences);

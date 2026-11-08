@@ -130,6 +130,7 @@ public class JobOffreController {
             CandidatureVue vue = vues.computeIfAbsent(idOffre,
                     id -> new CandidatureVue(candidature.getOffre()));
             vue.setCandidature(candidature);
+            vue.setCv(candidature.getCv());
             vue.setEtapeValidee(etapeValidee(candidature));
             vue.setQuestionnaire(chargerQuestionnaire(candidature));
         }
@@ -139,8 +140,8 @@ public class JobOffreController {
                 Integer idOffre = selection.getOffreEmploi().getId();
                 CandidatureVue vue = vues.computeIfAbsent(idOffre,
                         id -> new CandidatureVue(selection.getOffreEmploi()));
-                if (vue.getCvCandidat() == null) {
-                    vue.setCvCandidat(selection.getCvCandidat());
+                if (vue.getCv() == null) {
+                    vue.setCv(selection.getCv());
                 }
                 vue.getEtapes().add(EtapeVue.from(selection));
             }

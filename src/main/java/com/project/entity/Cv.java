@@ -1,9 +1,18 @@
-
 package com.project.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "cv")
@@ -25,6 +34,12 @@ public class Cv {
 
     @Column(name = "date_naissance", nullable = false)
     private LocalDate dateNaissance;
+
+    @Column(name = "annee_experience", nullable = false)
+    private Integer anneeExperience = 0;
+
+    @Column(length = 255)
+    private String email;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String diplome;
@@ -48,6 +63,7 @@ public class Cv {
         }
     }
 
+    // Getter et setter de id
     public Integer getId() {
         return id;
     }
@@ -56,6 +72,7 @@ public class Cv {
         this.id = id;
     }
 
+    // Getter et setter de candidat
     public Utilisateur getCandidat() {
         return candidat;
     }
@@ -64,6 +81,7 @@ public class Cv {
         this.candidat = candidat;
     }
 
+    // Getter et setter de nom
     public String getNom() {
         return nom;
     }
@@ -72,6 +90,7 @@ public class Cv {
         this.nom = nom;
     }
 
+    // Getter et setter de prenom
     public String getPrenom() {
         return prenom;
     }
@@ -80,6 +99,7 @@ public class Cv {
         this.prenom = prenom;
     }
 
+    // Getter et setter de dateNaissance
     public LocalDate getDateNaissance() {
         return dateNaissance;
     }
@@ -88,6 +108,25 @@ public class Cv {
         this.dateNaissance = dateNaissance;
     }
 
+    // Getter et setter de anneeExperience
+    public Integer getAnneeExperience() {
+        return anneeExperience;
+    }
+
+    public void setAnneeExperience(Integer anneeExperience) {
+        this.anneeExperience = anneeExperience;
+    }
+
+    // Getter et setter de email
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    // Getter et setter de diplome
     public String getDiplome() {
         return diplome;
     }
@@ -96,6 +135,7 @@ public class Cv {
         this.diplome = diplome;
     }
 
+    // Getter et setter de competences
     public String getCompetences() {
         return competences;
     }
@@ -104,6 +144,7 @@ public class Cv {
         this.competences = competences;
     }
 
+    // Getter et setter de hobby
     public String getHobby() {
         return hobby;
     }
@@ -112,10 +153,11 @@ public class Cv {
         this.hobby = hobby;
     }
 
+    // Getter de createdAt : généré automatiquement
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
-
+    
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }

@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.project.entity.Candidature;
-import com.project.entity.CvCandidat;
+import com.project.entity.Cv;
 import com.project.entity.OffreEmploi;
 
 /**
@@ -17,7 +17,7 @@ public class CandidatureVue {
 
     private final OffreEmploi offre;
     private final List<EtapeVue> etapes = new ArrayList<>();
-    private CvCandidat cvCandidat;
+    private Cv cv;
     private Candidature candidature;
     private QuestionnaireVue questionnaire = QuestionnaireVue.vide();
     private boolean etapeValidee;
@@ -111,12 +111,12 @@ public class CandidatureVue {
         this.candidature = candidature;
     }
 
-    public CvCandidat getCvCandidat() {
-        return cvCandidat;
+    public Cv getCv() {
+        return cv;
     }
 
-    public void setCvCandidat(CvCandidat cvCandidat) {
-        this.cvCandidat = cvCandidat;
+    public void setCv(Cv cv) {
+        this.cv = cv;
     }
 
     /** Date de postulation : la candidature si elle existe, sinon le CV depose. */
@@ -124,7 +124,7 @@ public class CandidatureVue {
         if (candidature != null && candidature.getCreatedAt() != null) {
             return candidature.getCreatedAt();
         }
-        return cvCandidat != null ? cvCandidat.getCreatedAt() : null;
+        return cv != null ? cv.getCreatedAt() : null;
     }
 
     /** Libelle du statut affiche (statut de la candidature ou etape en cours). */

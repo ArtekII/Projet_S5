@@ -215,11 +215,13 @@ CREATE TABLE cv (
     id_candidat     INT NOT NULL REFERENCES utilisateur(id),
     nom             VARCHAR(100) NOT NULL,
     prenom          VARCHAR(100) NOT NULL,
-    date_naissance  DATE NOT NULL,
-    diplome         TEXT NOT NULL,
-    competences     TEXT NOT NULL,
-    hobby           TEXT,
-    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+    date_naissance   DATE NOT NULL,
+    annee_experience INT NOT NULL DEFAULT 0,
+    email            VARCHAR(255),
+    diplome          TEXT NOT NULL,
+    competences      TEXT NOT NULL,
+    hobby            TEXT,
+    created_at       TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE candidature (
