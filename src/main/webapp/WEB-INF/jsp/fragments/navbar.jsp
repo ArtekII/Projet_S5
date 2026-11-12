@@ -10,7 +10,7 @@
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/dossiers">Dossiers administratifs</a></c:if>
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/plannings">Plannings</a><a class="text-light small" href="${pageContext.request.contextPath}/rh/pointages">Pointages</a></c:if>
    <c:if test="${sessionScope.userRole == 'FINANCE'}"><a class="text-light small" href="${pageContext.request.contextPath}/finance/pointages">Variables de pointage</a></c:if>
-   <a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/espaceEmploye">Espace employé</a>
+   <c:if test="${requestScope.accesEspaceEmploye}"><a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/espaceEmploye">Espace employé</a></c:if>
    <c:if test="${sessionScope.userRole == 'CANDIDAT'}"><a class="text-light small" href="${pageContext.request.contextPath}/candidat/conditions">Mes conditions</a></c:if>
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/accreditations">Accr&eacute;ditations</a></c:if>
    <c:if test="${sessionScope.userRole eq 'CANDIDAT'}">

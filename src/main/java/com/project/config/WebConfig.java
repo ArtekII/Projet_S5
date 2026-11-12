@@ -16,7 +16,7 @@ public class WebConfig implements WebMvcConfigurer {
   public void addInterceptors(InterceptorRegistry registry) {
     registry.addInterceptor(authInterceptor)
         .addPathPatterns("/manager/**", "/rh/**", "/finance/**", "/direction/**", "/candidat/**",
-                "/dossier", "/dossier/**", "/espaceEmploye", "/espaceEmploye/**")
+                "/espaceCandidat", "/dossier", "/dossier/**", "/espaceEmploye", "/espaceEmploye/**")
         .excludePathPatterns("/login", "/logout", "/css/**", "/h2-console/**");
   }
 }

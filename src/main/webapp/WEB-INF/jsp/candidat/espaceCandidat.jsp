@@ -136,7 +136,7 @@ label.go{cursor:pointer}
 <label for="v-cv">Déposer mon CV</label>
 <label for="v-cand">Mes candidatures <small>${nbCandidatures}</small></label>
 <label for="v-etapes">Étapes de postulation</label>
-<a href="<c:url value='/espaceEmploye'/>">Espace employé →</a>
+<c:if test="${requestScope.accesEspaceEmploye}"><a href="<c:url value='/espaceEmploye'/>">Espace employé →</a></c:if>
 </nav>
 <div class="me"><div class="av">${userEmail.substring(0,1).toUpperCase()}</div><div><b>${userEmail}</b><a href="<c:url value='/logout'/>">Se déconnecter</a></div></div>
 </aside>
