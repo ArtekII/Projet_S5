@@ -4,6 +4,7 @@ import com.project.entity.*;
 import com.project.service.AuthService;
 import com.project.service.ConditionTravailService;
 import com.project.service.ContratService;
+import com.project.service.ContratEmployeService;
 import jakarta.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.net.*;
@@ -38,6 +39,7 @@ class ConditionTravailPagesTest {
     @MockBean ConditionTravailService service;
     @MockBean AuthService auth;
     @MockBean ContratService contrats;
+    @MockBean ContratEmployeService contratEmployes;
 
     @BeforeEach
     void reponsesDisponibles() {
@@ -242,8 +244,9 @@ class ConditionTravailPagesTest {
         when(contrats.tousLesContrats()).thenReturn(List.of(contrat));
         HttpResponse<String> preparation = get(client("RH"), "/rh/contrats");
         assertEquals(200, preparation.statusCode(), preparation.body());
-        assertFalse(preparation.body().contains("name=\"dateDebut\""));
-        assertFalse(preparation.body().contains("name=\"dateFin\""));
+        assertTrue(preparation.body().contains("name=\"dateDebut\""));
+        assertTrue(preparation.body().contains("name=\"dureeMois\""));
+        assertTrue(preparation.body().contains("name=\"idEmp\""));
         contrat.setDateDebut(java.time.LocalDate.of(2026, 10, 22));
         contrat.setDateFin(java.time.LocalDate.of(2027, 1, 22));
         contrat.setStatut("FINALISE");

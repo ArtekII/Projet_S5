@@ -10,10 +10,12 @@ import java.util.Optional;
 @Service
 public class AuthService {
   private final UtilisateurRepository utilisateurRepository;
+  private final PointageService pointageService;
   private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-  public AuthService(UtilisateurRepository ur) {
+  public AuthService(UtilisateurRepository ur, PointageService pointageService) {
     this.utilisateurRepository = ur;
+    this.pointageService = pointageService;
   }
 
   public Optional<Utilisateur> authenticate(String email, String rawPassword) {
@@ -29,6 +31,14 @@ public class AuthService {
   }
 
   public void login(HttpSession session, Utilisateur u) {
+    if (session.getAttribute("userId") != null && !u.getId().equals(session.getAttribute("userId"))) {
+      pointageService.deconnecter((String) session.getAttribute("pointageToken"));
+      session.removeAttribute("pointageToken");
+    }
+    String jeton = (String) session.getAttribute("pointageToken");
+    if (jeton == null) jeton = java.util.UUID.randomUUID().toString();
+    pointageService.connecter(u.getId(), jeton);
+    session.setAttribute("pointageToken", jeton);
     session.setAttribute("userId", u.getId());
     session.setAttribute("userEmail", u.getEmail());
     session.setAttribute("userRole", u.getRole().getCode());
@@ -36,6 +46,7 @@ public class AuthService {
   }
 
   public void logout(HttpSession session) {
+    pointageService.deconnecter((String) session.getAttribute("pointageToken"));
     session.invalidate();
   }
 

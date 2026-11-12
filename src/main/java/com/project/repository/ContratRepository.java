@@ -17,6 +17,9 @@ public interface ContratRepository extends JpaRepository<Contrat, Integer> {
 
     List<Contrat> findAllByOrderByIdDesc();
 
+    List<Contrat> findByStatutAndDateDebutLessThanEqualOrderByDateDebutAscIdAsc(String statut,
+            java.time.LocalDate date);
+
     Optional<Contrat> findByIdCandidature(Integer candidatureId);
 
     @Query(value = "select co.* from contrat co join candidature c on c.id = co.id_candidature where c.id_candidat = :candidatId order by co.id desc", nativeQuery = true)

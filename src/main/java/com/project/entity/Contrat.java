@@ -7,12 +7,20 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "contrat")
 public class Contrat {
+    public static final String STATUT_FINALISE = "FINALISE";
+    public static final String STATUT_PROGRAMME = "PROGRAMME";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "id_candidature", nullable = false, unique = true)
+    /** Null pour un contrat successif rattache directement a un employe. */
+    @Column(name = "id_candidature")
     private Integer idCandidature;
+
+    /** Employe concerne par le contrat (renseigne des la creation du dossier employe). */
+    @Column(name = "id_employe")
+    private Integer idEmploye;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "id_condition", nullable = false)
@@ -27,6 +35,10 @@ public class Contrat {
 
     @Column(name = "date_fin")
     private LocalDate dateFin;
+
+    /** Duree du contrat en mois (null pour un CDI ou une duree non renseignee). */
+    @Column(name = "duree_mois")
+    private Integer dureeMois;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -72,6 +84,14 @@ public class Contrat {
         this.idCandidature = idCandidature;
     }
 
+    public Integer getIdEmploye() {
+        return idEmploye;
+    }
+
+    public void setIdEmploye(Integer idEmploye) {
+        this.idEmploye = idEmploye;
+    }
+
     public ConditionTravail getCondition() {
         return condition;
     }
@@ -102,6 +122,14 @@ public class Contrat {
 
     public void setDateFin(LocalDate dateFin) {
         this.dateFin = dateFin;
+    }
+
+    public Integer getDureeMois() {
+        return dureeMois;
+    }
+
+    public void setDureeMois(Integer dureeMois) {
+        this.dureeMois = dureeMois;
     }
 
     public LocalDateTime getCreatedAt() {

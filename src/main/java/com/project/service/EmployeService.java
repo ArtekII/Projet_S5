@@ -19,6 +19,8 @@ public class EmployeService {
 
     @Transactional
     public void assurerPourContrat(Contrat contrat) {
+        // Un contrat successif est deja rattache a un employe et n'a pas de candidature.
+        if (contrat.getIdCandidature() == null) return;
         // Serialise aussi deux embauches du meme utilisateur sur des offres differentes.
         var dossier = jdbc.queryForMap("""
                 select u.id, c.id_offre from candidature c
@@ -26,7 +28,12 @@ public class EmployeService {
                 where c.id = ? for update of u
                 """, contrat.getIdCandidature());
         Integer utilisateur = ((Number) dossier.get("id")).intValue();
-        if (jdbc.queryForObject("select count(*) from employe where id_utilisateur = ?", Integer.class, utilisateur) > 0) return;
+        Integer employeExistant = jdbc.query("select id_employe from employe where id_utilisateur = ?",
+                rs -> rs.next() ? rs.getInt(1) : null, utilisateur);
+        if (employeExistant != null) {
+            lierContrat(contrat, employeExistant);
+            return;
+        }
         var cvs = jdbc.queryForList("select id from cv_candidat where id_candidat = ? and id_offre = ?",
                 Integer.class, utilisateur, dossier.get("id_offre"));
         if (cvs.size() != 1) throw new DossierCvManquantException(contrat.getIdCandidature());
@@ -36,5 +43,15 @@ public class EmployeService {
                 insert into employe (id_utilisateur, id_cv_candidat, id_contrat_actuel, date_embauche)
                 values (?, ?, ?, ?)
                 """, utilisateur, cvs.get(0), contrat.getId(), date);
+        Integer employeId = jdbc.queryForObject(
+                "select id_employe from employe where id_utilisateur = ?", Integer.class, utilisateur);
+        lierContrat(contrat, employeId);
+    }
+
+    private void lierContrat(Contrat contrat, Integer employeId) {
+        if (contrat.getId() != null) {
+            jdbc.update("update contrat set id_employe = ? where id = ?", employeId, contrat.getId());
+            contrat.setIdEmploye(employeId);
+        }
     }
 }

@@ -3,9 +3,14 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
  <div class="container">
   <a class="navbar-brand" href="${pageContext.request.contextPath}/">Recrutement</a>
-  <div class="ms-auto d-flex align-items-center gap-3">
+  <div class="ms-auto d-flex flex-wrap align-items-center gap-3">
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/conditions">Conditions de travail</a></c:if>
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/contrats">Contrats</a></c:if>
+   <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/conges">Congés</a></c:if>
+   <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/dossiers">Dossiers administratifs</a></c:if>
+   <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/plannings">Plannings</a><a class="text-light small" href="${pageContext.request.contextPath}/rh/pointages">Pointages</a></c:if>
+   <c:if test="${sessionScope.userRole == 'FINANCE'}"><a class="text-light small" href="${pageContext.request.contextPath}/finance/pointages">Variables de pointage</a></c:if>
+   <a class="btn btn-outline-light btn-sm" href="${pageContext.request.contextPath}/espaceEmploye">Espace employé</a>
    <c:if test="${sessionScope.userRole == 'CANDIDAT'}"><a class="text-light small" href="${pageContext.request.contextPath}/candidat/conditions">Mes conditions</a></c:if>
    <c:if test="${sessionScope.userRole == 'RH'}"><a class="text-light small" href="${pageContext.request.contextPath}/rh/accreditations">Accr&eacute;ditations</a></c:if>
    <c:if test="${sessionScope.userRole eq 'CANDIDAT'}">

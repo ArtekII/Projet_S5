@@ -18,4 +18,44 @@ public class Employe {
     private Integer contratId;
     @Column(name = "date_embauche", nullable = false)
     private LocalDate dateEmbauche;
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getUtilisateurId() {
+        return utilisateurId;
+    }
+
+    public void setUtilisateurId(Integer utilisateurId) {
+        this.utilisateurId = utilisateurId;
+    }
+
+    public Integer getCvCandidatId() {
+        return cvCandidatId;
+    }
+
+    public void setCvCandidatId(Integer cvCandidatId) {
+        this.cvCandidatId = cvCandidatId;
+    }
+
+    public Integer getContratId() {
+        return contratId;
+    }
+
+    public void setContratId(Integer contratId) {
+        this.contratId = contratId;
+    }
+
+    public LocalDate getDateEmbauche() {
+        return dateEmbauche;
+    }
+
+    public void setDateEmbauche(LocalDate dateEmbauche) {
+        this.dateEmbauche = dateEmbauche;
+    }
 }

@@ -1,0 +1,123 @@
+<%@ page pageEncoding="UTF-8" %>
+<c:if test="${empty employeConge}">
+ <div class="employe-empty">Vos congés seront disponibles après votre embauche.</div>
+</c:if>
+<c:if test="${not empty employeConge}">
+ <section class="card shadow-sm mb-4" aria-labelledby="soldes-conges">
+  <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+   <h2 id="soldes-conges" class="h5 mb-0">Mes soldes de congés</h2>
+   <span class="badge bg-light text-dark">Période annuelle depuis l'embauche</span>
+  </div>
+  <div class="card-body">
+   <p class="small text-muted mb-3">
+    Le solde augmente chaque mois selon l'acquisition mensuelle du type de congé.
+    Le mois en cours est compté dès son premier jour. Les demandes en attente réservent
+    le solde ; il n'est décompté qu'après validation du RH.
+   </p>
+   <c:choose>
+    <c:when test="${empty soldesConges}">
+     <p class="mb-0">Aucun solde automatique n'est configuré pour votre profil.</p>
+    </c:when>
+    <c:otherwise>
+     <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+       <thead><tr><th>Type</th><th>Période</th><th class="text-end">Acquis</th><th class="text-end">Pris</th><th class="text-end">En attente</th><th class="text-end">Disponible après attente</th></tr></thead>
+       <tbody>
+        <c:forEach var="s" items="${soldesConges}">
+         <tr>
+          <td><strong><c:out value="${s.typeCode}"/></strong> — <c:out value="${s.typeLibelle}"/></td>
+          <td><c:out value="${s.periodeDebut}"/> → <c:out value="${s.periodeFin}"/></td>
+          <td class="text-end"><c:out value="${s.joursAcquis}"/></td>
+          <td class="text-end"><c:out value="${s.joursPris}"/></td>
+          <td class="text-end"><c:out value="${s.joursEnAttente}"/></td>
+          <td class="text-end"><strong><c:out value="${s.soldeReserve}"/></strong></td>
+         </tr>
+        </c:forEach>
+       </tbody>
+      </table>
+     </div>
+    </c:otherwise>
+   </c:choose>
+  </div>
+ </section>
+
+ <section class="card shadow-sm mb-4" aria-labelledby="nouvelle-demande-conge">
+  <div class="card-header"><h2 id="nouvelle-demande-conge" class="h5 mb-0">Demander un congé</h2></div>
+  <div class="card-body">
+   <form method="post" action="${pageContext.request.contextPath}/espaceEmploye/conges" class="row g-3">
+    <input type="hidden" name="dossierCsrf" value="${dossierCsrf}">
+    <div class="col-md-4">
+     <label for="typeCongeId" class="form-label">Type de congé *</label>
+     <select id="typeCongeId" name="typeCongeId" class="form-select" required>
+      <option value="">Choisir…</option>
+      <c:forEach var="t" items="${typesConge}">
+       <option value="${t.id}"><c:out value="${t.code}"/> — <c:out value="${t.libelle}"/><c:if test="${not t.remunere}"> (non rémunéré)</c:if></option>
+      </c:forEach>
+     </select>
+    </div>
+    <div class="col-md-3">
+     <label for="dateDebut" class="form-label">Du *</label>
+     <input id="dateDebut" name="dateDebut" type="date" class="form-control" min="${aujourdhuiConge}" required>
+    </div>
+    <div class="col-md-3">
+     <label for="dateFin" class="form-label">Au *</label>
+     <input id="dateFin" name="dateFin" type="date" class="form-control" min="${aujourdhuiConge}" required>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+     <button class="btn btn-primary w-100" type="submit">Envoyer</button>
+    </div>
+    <div class="col-12">
+     <label for="commentaireConge" class="form-label">Commentaire (facultatif)</label>
+     <textarea id="commentaireConge" name="commentaire" class="form-control" maxlength="500" rows="2"></textarea>
+     <div class="form-text">Les jours sont décomptés en jours ouvrés, du lundi au vendredi. Les jours fériés ne sont pas encore déduits.</div>
+    </div>
+   </form>
+  </div>
+ </section>
+
+ <section class="card shadow-sm" aria-labelledby="mes-demandes-conges">
+  <div class="card-header"><h2 id="mes-demandes-conges" class="h5 mb-0">Mes demandes de congés</h2></div>
+  <div class="card-body">
+   <c:choose>
+    <c:when test="${empty demandesConges}">
+     <p class="mb-0">Vous n'avez encore envoyé aucune demande de congé.</p>
+    </c:when>
+    <c:otherwise>
+     <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+       <thead><tr><th>Type</th><th>Du</th><th>Au</th><th class="text-end">Jours</th><th>Statut</th><th>Demandé le</th><th></th></tr></thead>
+       <tbody>
+        <c:forEach var="d" items="${demandesConges}">
+         <tr>
+          <td><strong><c:out value="${d.typeCode}"/></strong><br><span class="small text-muted"><c:out value="${d.typeLibelle}"/></span></td>
+          <td><c:out value="${d.dateDebut}"/></td>
+          <td><c:out value="${d.dateFin}"/></td>
+          <td class="text-end"><c:out value="${d.nbJours}"/></td>
+          <td>
+           <c:choose>
+            <c:when test="${d.statut == 'EN_ATTENTE'}"><span class="badge bg-warning text-dark">En attente</span></c:when>
+            <c:when test="${d.statut == 'VALIDE'}"><span class="badge bg-success">Validé</span></c:when>
+            <c:when test="${d.statut == 'REFUSE'}"><span class="badge bg-danger">Refusé</span></c:when>
+            <c:otherwise><span class="badge bg-secondary">Annulé</span></c:otherwise>
+           </c:choose>
+           <c:if test="${not empty d.commentaire}"><div class="small text-muted"><c:out value="${d.commentaire}"/></div></c:if>
+          </td>
+          <td><c:out value="${d.dateDemande}"/></td>
+          <td class="text-end">
+           <c:if test="${d.statut == 'EN_ATTENTE'}">
+            <form method="post" action="${pageContext.request.contextPath}/espaceEmploye/conges/${d.id}/annuler" class="d-inline">
+             <input type="hidden" name="dossierCsrf" value="${dossierCsrf}">
+             <button class="btn btn-sm btn-outline-secondary" type="submit">Annuler</button>
+            </form>
+           </c:if>
+          </td>
+         </tr>
+        </c:forEach>
+       </tbody>
+      </table>
+     </div>
+    </c:otherwise>
+   </c:choose>
+  </div>
+ </section>
+</c:if>
