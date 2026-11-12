@@ -6,9 +6,10 @@
  <title>Accréditations · RH</title>
  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
  <link href="${pageContext.request.contextPath}/assets/conditions.css" rel="stylesheet">
-</head><body class="bg-light">
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head><body class="bg-light app-shell">
 <jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<main class="container conditions-page">
+<main id="contenu" class="container conditions-page" tabindex="-1">
  <a href="${pageContext.request.contextPath}/rh/dashboard">Retour au tableau de bord RH</a>
  <header class="conditions-hero"><div class="conditions-kicker">Espace ressources humaines</div><h1>Accréditations</h1><p>Accordez une accréditation CDI à un candidat avant la confirmation de son contrat. Sans accréditation, il obtient un contrat d’essai. Avec cette accréditation, le candidat choisit entre CE et CDI.</p></header>
  <c:if test="${not empty success}"><div class="alert alert-success" role="status"><c:out value="${success}"/></div></c:if>

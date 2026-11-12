@@ -20,6 +20,7 @@ import com.project.service.CandidatureService;
 import com.project.service.OffreService;
 import com.project.service.QuestionnaireService;
 import com.project.service.ReponseCandidatService;
+import com.project.service.DashboardRhService;
 
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -46,10 +47,11 @@ public class RhController {
   private final CandidatureService candidatureService;
   private final QuestionnaireService questionnaireService;
   private final ReponseCandidatService responseCandidatService;
+  private final DashboardRhService dashboardRhService;
 
   public RhController(OffreService o, AuthService a, ConditionTravailService conditionService,
       ContratService contratService, CandidatureService c, QuestionnaireService q, ReponseCandidatService r,
-      ContratEmployeService contratEmployeService) {
+      ContratEmployeService contratEmployeService, DashboardRhService dashboardRhService) {
     this.contratService = contratService;
     this.contratEmployeService = contratEmployeService;
     this.offreService = o;
@@ -58,16 +60,34 @@ public class RhController {
     this.candidatureService = c;
     this.questionnaireService = q;
     this.responseCandidatService = r;
+    this.dashboardRhService = dashboardRhService;
   }
 
   @GetMapping("/dashboard")
-  public String dashboard(HttpSession session, Model model) {
+  public String dashboard(HttpSession session, Model model,
+      @RequestParam(defaultValue = "") String vue) {
+    Map<String, String> titres = Map.of(
+        "", "Vue d'ensemble", "demandes", "Demandes de postes", "offres", "Offres à valider",
+        "candidatures", "Candidatures", "questionnaires", "Questionnaires", "historique", "Toutes les offres");
+    Map<String, String> descriptions = Map.of(
+        "", "Retrouvez les actions à traiter et les accès utiles à votre journée.",
+        "demandes", "Examinez les besoins des managers et approuvez la création des nouveaux postes.",
+        "offres", "Vérifiez les informations et proposez un salaire avant de transmettre l'offre à Finance.",
+        "candidatures", "Consultez les réponses, préparez les entretiens et validez les prochaines étapes.",
+        "questionnaires", "Préparez les questions et les réponses attendues pour chaque offre.",
+        "historique", "Recherchez une offre et retrouvez son statut et ses candidats.");
+    String vueValide = titres.containsKey(vue) ? vue : "";
+    model.addAttribute("vueRh", vueValide);
+    model.addAttribute("titreRh", titres.get(vueValide));
+    model.addAttribute("descriptionRh", descriptions.get(vueValide));
+    if (vueValide.isEmpty()) model.addAttribute("echeancesRh", dashboardRhService.prochainesEcheances());
     Utilisateur u = authService.currentUser(session).orElseThrow();
     model.addAttribute("user", u);
     model.addAttribute("postes", offreService.postesActifs());
     model.addAttribute("offresAttente", offreService.offresEnAttenteRh());
     model.addAttribute("demandesAttente", offreService.demandesEnAttente());
-    model.addAttribute("toutesOffres", offreService.toutesOffres());
+    var toutesOffres = offreService.toutesOffres();
+    model.addAttribute("toutesOffres", toutesOffres);
     model.addAttribute("toutesDemandes", offreService.toutesDemandes());
     model.addAttribute("candidaturesRh", buildCandidaturesRh());
     Map<Integer, Questionnaire> questionnairesParOffre = new HashMap<>();
@@ -75,6 +95,8 @@ public class RhController {
       questionnairesParOffre.put(questionnaire.getOffre().getId(), questionnaire);
     }
     model.addAttribute("questionnairesParOffre", questionnairesParOffre);
+    model.addAttribute("questionnairesAPreparer", toutesOffres.stream()
+        .filter(offre -> !questionnairesParOffre.containsKey(offre.getId())).count());
     return "rh/dashboard";
   }
 
@@ -140,7 +162,7 @@ public class RhController {
     } catch (Exception e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=candidatures";
   }
 
   /** Le RH elimine la candidature. */
@@ -154,7 +176,7 @@ public class RhController {
     } catch (Exception e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=candidatures";
   }
 
   @PostMapping("/candidature/{id}/entretien")
@@ -174,7 +196,7 @@ public class RhController {
     } catch (Exception e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=candidatures";
   }
 
   @PostMapping("/questionnaire")
@@ -202,7 +224,7 @@ public class RhController {
     } catch (RuntimeException e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=questionnaires";
   }
 
   @PostMapping("/offre/{id}/questionnaire")
@@ -246,7 +268,7 @@ public class RhController {
             new BigDecimal(entry.getValue()));
       } catch (NumberFormatException e) {
         ra.addFlashAttribute("error", "Une note du questionnaire est invalide.");
-        return "redirect:/rh/dashboard";
+        return "redirect:/rh/dashboard?vue=candidatures";
       }
     }
     try {
@@ -255,7 +277,7 @@ public class RhController {
     } catch (RuntimeException e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=candidatures";
   }
 
   @PostMapping("/offre/{id}/valider")
@@ -273,7 +295,7 @@ public class RhController {
     } catch (Exception e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=offres";
   }
 
   @PostMapping("/offre/{id}/refuser")
@@ -286,7 +308,7 @@ public class RhController {
     } catch (Exception e) {
       ra.addFlashAttribute("error", e.getMessage());
     }
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=offres";
   }
 
   @PostMapping("/demande/{id}/valider")
@@ -294,7 +316,7 @@ public class RhController {
     Utilisateur u = authService.currentUser(session).orElseThrow();
     offreService.traiterDemandePoste(id, true, null, u);
     ra.addFlashAttribute("success", "Poste ajoute au catalogue (dropdown manager).");
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=demandes";
   }
 
   @PostMapping("/demande/{id}/refuser")
@@ -303,7 +325,7 @@ public class RhController {
     Utilisateur u = authService.currentUser(session).orElseThrow();
     offreService.traiterDemandePoste(id, false, motif, u);
     ra.addFlashAttribute("success", "Demande de poste refusee.");
-    return "redirect:/rh/dashboard";
+    return "redirect:/rh/dashboard?vue=demandes";
   }
 
     // Conditions de travail.

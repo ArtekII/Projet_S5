@@ -3,12 +3,13 @@
 <!DOCTYPE html>
 <html lang="fr"><head>
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
- <title>Congés · RH</title>
+ <title>Congés · Gestion RH</title>
  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
  <link href="${pageContext.request.contextPath}/assets/conditions.css" rel="stylesheet">
-</head><body class="bg-light">
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head><body class="bg-light app-shell">
 <jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<main class="container py-4">
+<main id="contenu" class="container py-4" tabindex="-1">
  <header class="mb-4">
   <h1 class="h3 mb-1">Demandes de congés</h1>
   <p class="text-muted mb-0">Validez ou refusez les demandes. Le solde n'est décompté qu'à la validation, après contrôle du solde disponible.</p>

@@ -2,6 +2,7 @@ package com.project.service;
 
 import com.project.entity.Utilisateur;
 import com.project.repository.UtilisateurRepository;
+import com.project.repository.EmployeRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -11,11 +12,13 @@ import java.util.Optional;
 public class AuthService {
   private final UtilisateurRepository utilisateurRepository;
   private final PointageService pointageService;
+  private final EmployeRepository employes;
   private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-  public AuthService(UtilisateurRepository ur, PointageService pointageService) {
+  public AuthService(UtilisateurRepository ur, PointageService pointageService, EmployeRepository employes) {
     this.utilisateurRepository = ur;
     this.pointageService = pointageService;
+    this.employes = employes;
   }
 
   public Optional<Utilisateur> authenticate(String email, String rawPassword) {
@@ -57,13 +60,20 @@ public class AuthService {
     return utilisateurRepository.findById((Integer) id);
   }
 
+  public String redirectAfterLogin(Integer utilisateurId, String roleCode) {
+    if (utilisateurId != null && employes.findByUtilisateurId(utilisateurId).isPresent()) {
+      return "redirect:/espaceEmploye";
+    }
+    return redirectByRole(roleCode);
+  }
+
   public String redirectByRole(String roleCode) {
     return switch (roleCode) {
       case "MANAGER" -> "redirect:/manager/dashboard";
       case "RH" -> "redirect:/rh/dashboard";
       case "FINANCE" -> "redirect:/finance/dashboard";
       case "DIRECTION" -> "redirect:/direction/dashboard";
-      case "CANDIDAT" -> "redirect:/candidat/offres";
+      case "CANDIDAT" -> "redirect:/espaceCandidat";
       default -> "redirect:/login";
     };
   }

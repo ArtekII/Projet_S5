@@ -3,8 +3,9 @@
 <!DOCTYPE html><html lang="fr"><head>
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
  <title>Pointages et anomalies · RH</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head><body class="bg-light"><jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<main class="container-fluid px-lg-5 pb-5">
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head><body class="bg-light app-shell"><jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
+<main id="contenu" class="container-fluid px-lg-5 pb-5" tabindex="-1">
  <h1 class="h2">Pointages et anomalies</h1><p><a href="${pageContext.request.contextPath}/rh/plannings">Définir les plannings par poste</a></p>
  <c:if test="${not empty success}"><div class="alert alert-success" role="status"><c:out value="${success}"/></div></c:if>
  <c:if test="${not empty error}"><div class="alert alert-danger" role="alert"><c:out value="${error}"/></div></c:if>
@@ -15,7 +16,7 @@
  </form>
  <p class="small text-muted">Durées en HH:MM:SS. Le temps connecté est cumulé sans doublons, hors pause prévue. Les heures supplémentaires correspondent au dépassement de la durée journalière prévue. Les valeurs restent provisoires pendant une session ouverte.</p>
  <c:if test="${empty bilans}"><p>Aucun pointage ou employé actif pour cette période.</p></c:if>
- <c:forEach var="b" items="${bilans}"><article class="card mb-4">
+ <div data-collection="pointages" data-search-placeholder="Employé, e-mail ou date"><c:forEach var="b" items="${bilans}"><article class="card mb-4" data-item data-state="${b.enCours ? 'En cours' : (not empty b.transmission ? 'Transmis à Finance' : (not empty b.anomalies ? 'À vérifier' : 'À transmettre'))}">
   <div class="card-header d-flex flex-wrap justify-content-between gap-2"><strong>${b.date} · Employé ${b.employe.id} · <c:out value="${b.email}"/></strong><c:if test="${b.enCours}"><span class="badge bg-info text-dark">En cours · provisoire</span></c:if><c:if test="${not empty b.transmission}"><span class="badge bg-success">Transmis à Finance</span></c:if></div>
   <div class="card-body">
    <p><c:choose><c:when test="${empty b.planning}">Planning non défini</c:when><c:when test="${not b.planning.jourTravaille}">Jour de repos · <c:out value="${b.planning.poste.intitule}"/></c:when><c:otherwise><c:out value="${b.planning.poste.intitule}"/> · ${b.planning.heureDebut} → ${b.planning.heureFin}<c:if test="${not empty b.planning.pauseDebut}"> · Pause ${b.planning.pauseDebut} → ${b.planning.pauseFin}</c:if></c:otherwise></c:choose></p>
@@ -39,5 +40,5 @@
     <c:forEach var="c" items="${b.corrections}"><p class="small mt-2 mb-0">Correction du ${c.corrigeLe} par <c:out value="${c.rh.email}"/> : <c:out value="${c.motif}"/> · ${c.ancienneEntree} → <c:out value="${c.ancienneSortie}" default="Manquante"/> remplacé par ${c.nouvelleEntree} → ${c.nouvelleSortie}.</p></c:forEach>
    </details>
   </div>
- </article></c:forEach>
+ </article></c:forEach></div>
 </main></body></html>

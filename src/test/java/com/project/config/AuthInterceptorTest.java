@@ -48,6 +48,16 @@ class AuthInterceptorTest {
     }
 
     @Test
+    void autoriseUnRhQuiEstAussiEmploye() throws Exception {
+        employePresent = true;
+        var request = new MockHttpServletRequest("GET", "/espaceEmploye");
+        request.getSession().setAttribute("userId", 100);
+        request.getSession().setAttribute("userRole", "RH");
+        assertTrue(interceptor.preHandle(request, new MockHttpServletResponse(), new Object()));
+        assertEquals(true, request.getAttribute("accesEspaceEmploye"));
+    }
+
+    @Test
     void protegeLesRoutesRhAvecUnContexteDeDeploiement() throws Exception {
         var request = new MockHttpServletRequest("POST", "/recrutement/rh/contrats/1/preparer");
         request.setContextPath("/recrutement");

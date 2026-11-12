@@ -4,16 +4,16 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Offres - Candidat</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"></head>
-<body class="bg-light">
+<title>Offres - Candidat</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head>
+<body class="bg-light app-shell">
 <jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<div class="container">
- <h4>Offres publiées</h4>
- <p class="small text-muted">Seules les offres validées par RH &rarr; Finance &rarr; Direction apparaissent ici.</p>
+<main id="contenu" class="container" tabindex="-1">
+ <header class="app-page-head"><div><span class="app-eyebrow">Mon espace candidat</span><h1>Offres disponibles</h1><p>Découvrez les opportunités et choisissez votre prochaine étape.</p></div><a class="btn btn-outline-primary" href="${pageContext.request.contextPath}/espaceCandidat?onglet=cand">Mes candidatures</a></header>
  <c:if test="${empty offres}"><div class="alert alert-info">Aucune offre publiée pour le moment.</div></c:if>
- <div class="row g-3">
+ <div data-collection="offres disponibles" data-state-label="Département" data-search-placeholder="Poste, département ou compétence"><div class="row g-3">
   <c:forEach var="o" items="${offres}">
-   <div class="col-md-6 col-lg-4">
+   <div class="col-md-6 col-lg-4" data-item data-state="<c:out value='${o.departement.nom}'/>">
     <div class="card shadow-sm h-100">
      <div class="card-body">
       <h6>${o.poste.intitule}</h6>
@@ -31,5 +31,5 @@
    </div>
   </c:forEach>
  </div>
-</div>
+</div></main>
 </body></html>

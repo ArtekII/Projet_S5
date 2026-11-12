@@ -7,9 +7,10 @@
  <title>Dossier administratif</title>
  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
  <link href="${pageContext.request.contextPath}/assets/conditions.css" rel="stylesheet">
-</head><body class="bg-light">
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head><body class="bg-light app-shell">
 <jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<main class="container conditions-page">
+<main id="contenu" class="container conditions-page" tabindex="-1">
  <c:if test="${gestionRh}"><a href="${pageContext.request.contextPath}/rh/dossiers">← Dossiers administratifs</a></c:if>
  <header class="conditions-hero"><h1>Dossier administratif</h1><p><c:out value="${titulaire.email}"/>
   <c:if test="${not empty employe}"> · Employé n° ${employe.id} · Embauche : ${employe.dateEmbauche}</c:if>

@@ -1,11 +1,11 @@
 :root {
-    --emp-bg: #f2f6f7;
-    --emp-surface: #fff;
-    --emp-ink: #12242d;
-    --emp-muted: #5a6d76;
-    --emp-line: #d5e0e4;
-    --emp-accent: #0b7a75;
-    --emp-highlight: #f4b63f;
+    --emp-bg: var(--bg);
+    --emp-surface: var(--surface);
+    --emp-ink: var(--ink);
+    --emp-muted: var(--muted);
+    --emp-line: var(--line);
+    --emp-accent: var(--accent);
+    --emp-highlight: var(--hl);
     color-scheme: light;
 }
 body { margin: 0; background: var(--emp-bg); color: var(--emp-ink); font: 400 17px/1.55 "Source Sans 3", system-ui, sans-serif; }

@@ -7,13 +7,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Espace candidat – JobListe</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2f6f7;--surface:#fff;--ink:#12242d;--muted:#5a6d76;--line:#d5e0e4;--accent:#0b7a75;--accent-ink:#fff;--hl:#f4b63f;--hl-ink:#3a2a00;--bad:#b3261e;
-color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1b21;--surface:#16262e;--ink:#e8f1f3;--muted:#9bb0b8;--line:#2a3f49;--accent:#3cc4bb;--accent-ink:#06211f;--bad:#ff8a7d;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0f1b21;--surface:#16262e;--ink:#e8f1f3;--muted:#9bb0b8;--line:#2a3f49;--accent:#3cc4bb;--accent-ink:#06211f;--bad:#ff8a7d;color-scheme:dark}
+/* Colors and fonts are defined by the shared JobListe theme. */
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 "Source Sans 3",system-ui,sans-serif}
@@ -121,8 +116,12 @@ label.go{cursor:pointer}
 .mini{grid-template-columns:repeat(2,1fr)}
 }
 </style>
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
 </head>
-<body>
+<body class="app-candidate">
+<jsp:include page="/WEB-INF/jsp/fragments/session-feedback.jsp"/>
+<jsp:include page="/WEB-INF/jsp/fragments/form-feedback.jsp"/>
+<a class="app-skip" href="#contenu">Aller au contenu</a>
 <div class="app">
 <input class="rd" type="radio" name="v" id="v-offres" ${onglet eq 'offres' ? 'checked' : ''} aria-label="Offres disponibles">
 <input class="rd" type="radio" name="v" id="v-cv" ${onglet eq 'cv' ? 'checked' : ''} aria-label="Déposer mon CV">
@@ -131,17 +130,18 @@ label.go{cursor:pointer}
 
 <aside class="side">
 <div class="logo"><span>Job</span>Liste</div>
-<nav class="nav" aria-label="Navigation">
-<label for="v-offres">Offres disponibles <small>${nbOffres}</small></label>
-<label for="v-cv">Déposer mon CV</label>
-<label for="v-cand">Mes candidatures <small>${nbCandidatures}</small></label>
-<label for="v-etapes">Étapes de postulation</label>
-<c:if test="${requestScope.accesEspaceEmploye}"><a href="<c:url value='/espaceEmploye'/>">Espace employé →</a></c:if>
+<nav class="nav" aria-label="Navigation candidat">
+<a data-candidate-tab="offres" href="${pageContext.request.contextPath}/espaceCandidat?onglet=offres">Offres disponibles <small>${nbOffres}</small></a>
+<a data-candidate-tab="cv" href="${pageContext.request.contextPath}/espaceCandidat?onglet=cv">Déposer mon CV</a>
+<a data-candidate-tab="cand" href="${pageContext.request.contextPath}/espaceCandidat?onglet=cand">Mes candidatures <small>${nbCandidatures}</small></a>
+<a data-candidate-tab="etapes" href="${pageContext.request.contextPath}/espaceCandidat?onglet=etapes">Étapes de candidature</a>
+<a href="${pageContext.request.contextPath}/candidat/conditions">Conditions et contrats</a><c:if test="${requestScope.accesEspaceEmploye}"><a href="<c:url value='/espaceEmploye'/>">Espace employé →</a></c:if>
 </nav>
 <div class="me"><div class="av">${userEmail.substring(0,1).toUpperCase()}</div><div><b>${userEmail}</b><a href="<c:url value='/logout'/>">Se déconnecter</a></div></div>
 </aside>
 
-<main class="main">
+<main id="contenu" class="main" tabindex="-1">
+<c:if test="${not empty pointageSessionVue}"><div class="app-pointage-notice"><strong>Pointage en cours depuis ${pointageSessionVue}</strong>Votre déconnexion enregistrera votre sortie. <a href="${pageContext.request.contextPath}/espaceEmploye?onglet=pointages">Consulter mes pointages</a></div></c:if>
 <c:if test="${not empty success}"><div class="banner ok">${success}</div></c:if>
 <c:if test="${not empty error}"><div class="banner ko">${error}</div></c:if>
 <!-- Offres disponibles -->
@@ -150,9 +150,9 @@ label.go{cursor:pointer}
 <c:if test="${empty offres}">
 <div class="empty">Aucune offre d'emploi disponible pour le moment.</div>
 </c:if>
-<div class="grid">
+<div data-collection="offres candidat" data-state-label="Département" data-search-placeholder="Poste, département ou compétence"><div class="grid">
 <c:forEach var="offre" items="${offres}">
-<article class="card job" data-d="info">
+<article class="card job" data-item data-state="<c:out value='${offre.departement.nom}'/>">
 
 <span class="tag">
 ${offre.statut.libelle}
@@ -199,7 +199,7 @@ ${offre.poste.description}
 
 </article>
 </c:forEach>
-</div>
+</div></div>
 </section>
 
 <!-- Déposer mon CV -->
@@ -352,7 +352,7 @@ ${offre.poste.description}
 </c:if>
 </article>
 </c:forEach>
-</div>
+</div></div>
 </section>
 
 <!-- Étapes de postulation -->

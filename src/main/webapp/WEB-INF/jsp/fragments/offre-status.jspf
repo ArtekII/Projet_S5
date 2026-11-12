@@ -1,0 +1,9 @@
+<%@ page pageEncoding="UTF-8" %>
+<c:choose>
+ <c:when test="${offreSuivie.statut.code == 'PUBLIEE'}"><span class="badge bg-success">Publiée</span><small class="d-block text-muted mt-1">Visible par les candidats</small></c:when>
+ <c:when test="${offreSuivie.statut.code == 'EN_ATTENTE_RH'}"><span class="badge bg-warning">En attente des RH</span><small class="d-block text-muted mt-1">Prochaine étape : Finance</small></c:when>
+ <c:when test="${offreSuivie.statut.code == 'EN_ATTENTE_FINANCE'}"><span class="badge bg-warning">En attente de Finance</span><small class="d-block text-muted mt-1">Prochaine étape : Direction</small></c:when>
+ <c:when test="${offreSuivie.statut.code == 'EN_ATTENTE_DIRECTION'}"><span class="badge bg-warning">En attente de la Direction</span><small class="d-block text-muted mt-1">Prochaine étape : publication</small></c:when>
+ <c:when test="${offreSuivie.statut.code == 'REFUSEE_RH' or offreSuivie.statut.code == 'REFUSEE_FINANCE' or offreSuivie.statut.code == 'REFUSEE_DIRECTION'}"><span class="badge bg-danger"><c:out value="${offreSuivie.statut.libelle}"/></span><small class="d-block text-muted mt-1">Le parcours de publication est arrêté</small></c:when>
+ <c:otherwise><span class="badge bg-secondary"><c:out value="${offreSuivie.statut.libelle}"/></span></c:otherwise>
+</c:choose>

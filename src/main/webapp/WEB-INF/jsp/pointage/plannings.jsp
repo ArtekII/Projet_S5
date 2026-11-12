@@ -5,8 +5,9 @@
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
  <title>Plannings par poste · RH</title>
  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head><body class="bg-light"><jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<main class="container pb-5">
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head><body class="bg-light app-shell"><jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
+<main id="contenu" class="container pb-5" tabindex="-1">
  <h1 class="h2">Plannings par poste</h1>
  <p>Définissez les jours travaillés, les horaires et les pauses. Une nouvelle date d'effet conserve les versions précédentes.</p>
  <p><a href="${pageContext.request.contextPath}/rh/pointages">Consulter les pointages et préparer les variables de paie →</a></p>

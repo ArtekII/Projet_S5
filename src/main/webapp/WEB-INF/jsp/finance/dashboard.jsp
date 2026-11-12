@@ -3,14 +3,15 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Finance</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"></head>
-<body class="bg-light">
+<title>Finance</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head>
+<body class="bg-light app-shell">
 <jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<div class="container">
+<main id="contenu" class="container" tabindex="-1">
  <c:if test="${not empty success}"><div class="alert alert-success">${success}</div></c:if>
  <c:if test="${not empty error}"><div class="alert alert-danger">${error}</div></c:if>
- <h4>Finance — Validation salaire</h4>
- <p class="small text-muted">Vous revoyez l'offre validée par le RH, vous pouvez modifier le salaire ou valider tel quel &rarr; passe à la Direction.</p>
+ <header class="app-page-head"><div><span class="app-eyebrow">Finance</span><h1>Salaires à valider</h1><p>Vérifiez le salaire proposé par les RH, puis transmettez votre décision à la Direction.</p></div></header>
+ <ol class="app-workflow" aria-label="Parcours de publication"><li><span>Manager</span></li><li><span>RH</span></li><li aria-current="step"><span>Finance</span></li><li><span>Direction</span></li><li><span>Publication</span></li></ol>
  <div class="card shadow-sm"><div class="card-header bg-warning">Offres en attente Finance</div>
   <div class="card-body">
    <c:if test="${empty offresAttente}"><div class="text-muted small">Aucune offre en attente Finance.</div></c:if>
@@ -27,11 +28,11 @@
    </c:forEach>
   </div>
  </div>
- <div class="card shadow-sm mt-4"><div class="card-header">Historique toutes offres</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm mb-0">
+ <div class="card shadow-sm mt-4"><div class="card-header">Historique toutes offres</div><div class="card-body" data-collection="offres finance" data-search-placeholder="Intitulé du poste"><div class="table-responsive"><table class="table table-sm mb-0">
   <thead><tr><th>Poste</th><th>Statut</th><th>Salaire</th></tr></thead>
   <tbody>
-   <c:forEach var="o" items="${toutesOffres}"><tr><td>${o.poste.intitule}</td><td><span class="badge bg-secondary">${o.statut.libelle}</span></td><td>${o.salaire}</td></tr></c:forEach>
+   <c:forEach var="o" items="${toutesOffres}"><tr data-item data-state="<c:out value='${o.statut.libelle}'/>"><td>${o.poste.intitule}</td><td><c:set var="offreSuivie" value="${o}"/><%@ include file="../fragments/offre-status.jspf" %></td><td>${o.salaire}</td></tr></c:forEach>
   </tbody>
  </table></div></div></div>
-</div>
+</main>
 </body></html>

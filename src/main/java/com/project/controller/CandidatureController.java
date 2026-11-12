@@ -68,6 +68,7 @@ public class CandidatureController {
                     "Postulation enregistrée : votre candidature est en attente de validation par le RH.");
         } catch (RuntimeException e) {
             redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/espaceCandidat?onglet=cv&offre=" + idOffre;
         }
         return "redirect:/espaceCandidat?onglet=cand";
     }

@@ -2,8 +2,9 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
  <title>Variables de pointage · Finance</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head><body class="bg-light"><jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<main class="container pb-5"><h1 class="h2">Variables de pointage transmises par les RH</h1>
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head><body class="bg-light app-shell"><jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
+<main id="contenu" class="container pb-5" tabindex="-1"><h1 class="h2">Variables de pointage transmises par les RH</h1>
  <p>Durées validées pour la préparation de la paie. Les montants et majorations restent à calculer selon les règles de paie applicables.</p>
  <c:if test="${not empty error}"><div class="alert alert-danger" role="alert"><c:out value="${error}"/></div></c:if>
  <form method="get" action="${pageContext.request.contextPath}/finance/pointages" class="row g-3 mb-4 align-items-end">

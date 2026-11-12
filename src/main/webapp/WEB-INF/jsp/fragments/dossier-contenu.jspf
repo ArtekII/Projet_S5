@@ -42,7 +42,7 @@
     <div class="col-12"><button class="btn btn-primary">Déposer le document</button></div>
    </form>
    <c:if test="${empty documents}"><p class="text-muted">Aucun document déposé.</p></c:if>
-   <c:forEach var="doc" items="${documents}"><article class="border rounded p-3 mb-3">
+   <div data-collection="documents" data-order-label="Échéances prioritaires" data-search-placeholder="Type ou nom du document"><c:forEach var="doc" items="${documents}"><article class="border rounded p-3 mb-3" data-item data-priority="${doc.validite == 'EXPIRE' ? 0 : (doc.validite == 'A_RENOUVELER' ? 1 : 2)}" data-state="${doc.validite == 'EXPIRE' ? 'Expiré' : (doc.validite == 'A_RENOUVELER' ? 'À renouveler' : (doc.validite == 'VALIDE' ? 'Valide' : 'Sans échéance'))}">
     <div class="d-flex flex-wrap gap-2 align-items-center">
      <strong><c:out value="${doc.type}"/></strong>
      <a href="${pageContext.request.contextPath}${baseDossier}/documents/${doc.id}"><c:out value="${doc.nomFichier}"/></a>
@@ -62,7 +62,7 @@
       <div class="col-md-4 d-flex align-items-end"><button class="btn btn-outline-primary">Enregistrer la validité</button></div>
      </form>
     </details></c:if>
-   </article></c:forEach>
+   </article></c:forEach></div>
   </div>
  </section>
 

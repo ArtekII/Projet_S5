@@ -3,10 +3,11 @@
 <%@ taglib prefix="f" uri="/WEB-INF/tld/functions.tld" %>
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="UTF-8"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><title>Détail offre</title></head>
-<body class="bg-light">
+<head><meta name="viewport" content="width=device-width, initial-scale=1"><meta charset="UTF-8"><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><title>Détail offre</title><jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
+</head>
+<body class="bg-light app-shell">
 <jsp:include page="/WEB-INF/jsp/fragments/navbar.jsp"/>
-<div class="container">
+<main id="contenu" class="container" tabindex="-1">
  <a href="${pageContext.request.contextPath}/candidat/offres" class="btn btn-sm btn-secondary mb-3">&larr; Retour aux offres</a>
  <div class="card shadow-sm">
   <div class="card-header">${offre.poste.intitule}</div>
@@ -30,5 +31,5 @@
    </a>
   </div>
  </div>
-</div>
+</main>
 </body></html>

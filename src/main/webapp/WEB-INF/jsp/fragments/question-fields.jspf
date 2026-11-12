@@ -1,0 +1,11 @@
+<%@ page pageEncoding="UTF-8" %>
+<fieldset class="app-question" data-question>
+ <legend>Question ${questionIndex}</legend>
+ <div class="row g-3">
+  <div class="col-md-8"><label class="form-label">Énoncé</label><input name="enonce" value="<c:out value='${questionDefinition.enonce}'/>" class="form-control" placeholder="Saisissez votre question"></div>
+  <div class="col-md-2"><label class="form-label">Points</label><input name="points" type="number" min="0" step="0.01" value="${empty questionDefinition ? 1 : questionDefinition.points}" class="form-control"></div>
+  <div class="col-md-2"><label class="form-label">Réponse</label><select name="type" class="form-select"><option value="QCM" ${questionDefinition.type.code == 'QCM' ? 'selected' : ''}>QCM</option><option value="TEXTE" ${questionDefinition.type.code == 'TEXTE' ? 'selected' : ''}>Texte libre</option></select></div>
+  <div class="col-md-8" data-choice-fallback><label class="form-label">Réponses séparées par |</label><input name="choix" value="<c:out value='${questionDefinition.choixTexte}'/>" class="form-control" placeholder="Réponse A|Réponse B|Réponse C"></div>
+  <div class="col-md-4" data-correct-fallback><label class="form-label">Bonne réponse (0 = première)</label><input name="bonneReponse" value="${questionDefinition.bonneReponseIndex}" type="number" min="0" class="form-control"></div>
+ </div>
+</fieldset>

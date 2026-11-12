@@ -6,11 +6,11 @@
 <html lang="fr"><head>
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
  <title>Espace employé – JobListe</title>
- <link rel="preconnect" href="https://fonts.googleapis.com">
- <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
  <link href="${pageContext.request.contextPath}/assets/espace-employe.css" rel="stylesheet">
+<jsp:include page="/WEB-INF/jsp/fragments/app-head.jsp"/>
 </head><body>
+<jsp:include page="/WEB-INF/jsp/fragments/session-feedback.jsp"/>
 <a class="employe-skip" href="#contenu">Aller au contenu</a>
 <div class="employe-app">
  <aside class="employe-side">
@@ -45,6 +45,7 @@
    <h1>Espace employé</h1><p>Retrouvez vos renseignements, vos documents et votre parcours professionnel.</p>
    <c:if test="${not empty employe}"><div class="employe-identite">Employé n° ${employe.id} · Embauche : ${employe.dateEmbauche}<c:if test="${not empty titulaire.departement}"> · <c:out value="${titulaire.departement.nom}"/></c:if></div></c:if>
   </header>
+  <c:if test="${not empty pointageSessionVue}"><div class="app-pointage-notice"><strong>Pointage en cours depuis ${pointageSessionVue}</strong>Votre déconnexion enregistrera votre sortie. <a href="${pageContext.request.contextPath}/espaceEmploye?onglet=pointages">Consulter mes pointages</a></div></c:if>
   <c:if test="${not empty success}"><div class="alert alert-success" role="status"><c:out value="${success}"/></div></c:if>
   <c:if test="${not empty error}"><div class="alert alert-danger" role="alert"><c:out value="${error}"/></div></c:if>
   <c:set var="documentsASuivre" value="0"/>

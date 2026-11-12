@@ -82,7 +82,7 @@ public class JobOffreController {
 
         // Rediriger si l'utilisateur n'est pas connecté
         if (utilisateur == null) {
-            return "redirect:/login";
+            return offreId == null ? "redirect:/login" : "redirect:/login?offre=" + offreId;
         }
 
         List<OffreEmploi> offres = offreService.listerOffresPubliees();
@@ -109,7 +109,7 @@ public class JobOffreController {
         model.addAttribute("offresPostulees", offresPostulees(candidatureVues));
 
         // Onglet affiche : le depot de CV est ouvert si une offre est preselectionnee
-        model.addAttribute("onglet", onglet != null ? onglet
+        model.addAttribute("onglet", List.of("offres", "cv", "cand", "etapes").contains(onglet == null ? "" : onglet) ? onglet
                 : (offreId != null ? "cv" : "offres"));
         model.addAttribute("offreSelectionnee", offreId);
 
